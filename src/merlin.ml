@@ -26,20 +26,18 @@ let check_errors filename =
     call_merlin ~filename ~command:`Errors
     |> Yojson.Safe.Util.to_list
   in
-  if List.is_empty errors then ()
-  else (
+  if List.is_empty errors then Result.return ()
+  else
     let errors = 
-      List.take errors 5
+      List.take errors 1
       |> List.map ~f:Yojson.Safe.Util.(fun t -> member "message" t |> to_string)
       |> String.concat ~sep:"\n"
     in
-    Stdio.printf "!! Merlin has errors !! Here are the 5 first errors:\n%s\n" errors;
-    assert false
-  )
+    Result.failf "Merlin has errors. Here is the first one:\n%s\n" errors
 
 let uses_of_open filename module_expr =
   let pos = string_of_location module_expr.pmod_loc  in
   let command = `Open pos in
   call_merlin ~filename ~command
   |> Yojson.Safe.Util.to_list
-  |> List.map ~f:qualify_of_yojson_exn
+  |> map_result ~f:qualify_of_yojson

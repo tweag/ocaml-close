@@ -31,10 +31,12 @@ let is_whitelisted whitelist module_expr =
 let get_source_fragment filename start finish =
   let lines = Stdio.In_channel.read_lines filename in
   if start.line <> finish.line then
-    failwith "Not implemented"
+    Result.fail "Source fragment over multiple lines not implemented"
   else
     let delta = finish.col - start.col in
-    String.sub (List.nth_exn lines (start.line - 1)) ~pos:start.col ~len:delta
+    match List.nth lines (start.line - 1) with
+    | None -> Result.failf "No line %d in %s" start.line filename
+    | Some line -> Result.return @@ String.sub line ~pos:start.col ~len:delta
 
 (* TODO proper ast parsing with error management *)
 module Utils = Ppxlib__Utils
