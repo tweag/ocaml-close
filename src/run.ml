@@ -12,6 +12,6 @@ let info =
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
-let close_t = Term.(const Close.analyse $ filename)
+let close_t = Term.(const (Close.filtered_analyse) $ filename) |> Term.term_result
 
 let () = Term.eval (close_t, info) |> Term.exit

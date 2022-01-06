@@ -13,12 +13,15 @@ The build dir can be fetched by parsing dune describe --format=csexp
 *)
 
 (* TODO: support for wildcard *)
+
 let whitelist = ["Base"]
 
 let infer_prefix filename qualify =
-  let unqualified = Syntactic.get_source_fragment filename qualify.start qualify.finish in
-  String.chop_suffix_exn qualify.content ~suffix:unqualified
-  |> String.chop_suffix_exn ~suffix:"."
+  let* unqualified = Syntactic.get_source_fragment filename qualify.start qualify.finish in
+  Option.bind
+    (String.chop_suffix qualify.content ~suffix:unqualified)
+    ~f:(String.chop_suffix ~suffix:".")
+  |> Result.of_option ~error:"Couldn't chop prefix when inferring module name"
 
 type open_summary = {
   module_name : string;
@@ -26,17 +29,21 @@ type open_summary = {
 }
 
 let compute_summary filename uses =
-  if List.is_empty uses then None
-  else (
-    let prefix = infer_prefix filename (List.hd_exn uses) in
+  if List.is_empty uses then Result.return None
+  else
+    let* prefix = infer_prefix filename (List.hd_exn uses) in
     let uses =
       List.map ~f:(fun s -> s.content) uses
-      |> List.map ~f:(String.chop_prefix_exn ~prefix:(prefix ^ "."))
+      |> List.map ~f:(String.chop_prefix ~prefix:(prefix ^ "."))
+    in
+    let* uses =
+      if List.exists ~f:Option.is_none uses then
+        Result.failf "Couldn't chop inferred prefix on use"
+      else Result.return (List.filter_opt uses)
     in
     let h = Hashtbl.create (module String) in
     List.iter ~f:(Hashtbl.incr h) uses;
-    Some {module_name = prefix ; use_table = h}
-  )
+    Result.return @@ Some {module_name = prefix ; use_table = h}
 
 let print_summary sum =
   Stdio.printf "Module %s : " sum.module_name ;
@@ -48,12 +55,15 @@ let print_summary_maybe = function
   | None -> Stdio.printf "One open with no use..."
 
 let analyse filename =
+  let* () = Merlin.check_errors filename in
   let ast = Syntactic.get_ast_ml filename in
   let opens = Syntactic.opens_of ast in
   Stdio.printf "Number of opens: %d\n" (List.length opens);
-  Merlin.check_errors filename ;
-  List.filter ~f:(Fn.non (Syntactic.is_whitelisted whitelist)) opens
-  |> List.map ~f:(Merlin.uses_of_open filename)
-  |> List.map ~f:(compute_summary filename)
-  |> List.iter ~f:print_summary_maybe
+  let* uses =
+    List.filter ~f:(Fn.non (Syntactic.is_whitelisted whitelist)) opens
+    |> map_result ~f:(Merlin.uses_of_open filename) in
+  let* summaries = map_result ~f:(compute_summary filename) uses in
+  List.iter ~f:print_summary_maybe summaries;
+  Result.return ()
 
+let filtered_analyse filename = analyse filename |> filter_errors
