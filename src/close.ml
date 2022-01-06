@@ -1,6 +1,17 @@
 open Base
 open Utils
 
+(* Possible TODO: use typerex-lint ? But it's outdated *)
+
+(* Note : usage of ocp-index in one file
+ocp-index print -F Dune__exe__Close
+   --context=src/close.ml:4,5
+   --build=_build/default/src/.close.eobjs/byte 
+   whitelist 
+
+The build dir can be fetched by parsing dune describe --format=csexp
+*)
+
 (* TODO: support for wildcard *)
 let whitelist = ["Base"]
 
