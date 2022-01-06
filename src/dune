@@ -1,6 +1,0 @@
-(executable
- (public_name ocamlclose)
- (name run)
- (libraries ppxlib feather yojson ppx_deriving_yojson.runtime stdio cmdliner)
- (preprocess (pps ppxlib.metaquot ppx_deriving_yojson))
-)

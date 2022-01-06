@@ -46,6 +46,9 @@ let get_ast_ml filename =
   match IO.read (IO.File filename)
           ~input_kind:(Possibly_source (Utils.Kind.Impl, filename))
   with
-  | Ok {ast = Impl s ; _ } -> s
-  | _ -> failwith "Parsing failed"
+  | Ok {ast = Impl s ; _ } -> Result.return s
+  | _ -> Result.failf "Couldn't parse %s as a ML file" filename
 
+let get_opens filename =
+  let* ast = get_ast_ml filename in
+  Result.return (opens_of ast)
