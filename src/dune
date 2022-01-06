@@ -1,0 +1,6 @@
+(executable
+ (public_name ocamlclose)
+ (name close)
+ (libraries ppxlib feather yojson ppx_deriving_yojson.runtime stdio)
+ (preprocess (pps ppxlib.metaquot ppx_deriving_yojson))
+ (modules close utils merlin syntactic))
