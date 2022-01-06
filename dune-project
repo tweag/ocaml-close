@@ -13,5 +13,6 @@
     yojson
     ppx_deriving_yojson
     stdio
+    cmdliner
   )
 )

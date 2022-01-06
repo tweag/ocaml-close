@@ -47,8 +47,7 @@ let print_summary_maybe = function
   | Some sum -> print_summary sum
   | None -> Stdio.printf "One open with no use..."
 
-let main =
-  let filename = (Sys.get_argv ()).(1) in
+let analyse filename =
   let ast = Syntactic.get_ast_ml filename in
   let opens = Syntactic.opens_of ast in
   Stdio.printf "Number of opens: %d\n" (List.length opens);
@@ -57,3 +56,4 @@ let main =
   |> List.map ~f:(Merlin.uses_of_open filename)
   |> List.map ~f:(compute_summary filename)
   |> List.iter ~f:print_summary_maybe
+
