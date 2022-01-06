@@ -1,0 +1,5 @@
+(executable
+ (public_name ocamlclose)
+ (name run)
+ (libraries closelib cmdliner)
+)

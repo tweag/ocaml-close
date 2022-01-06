@@ -56,8 +56,7 @@ let print_summary_maybe = function
 
 let analyse filename =
   let* () = Merlin.check_errors filename in
-  let ast = Syntactic.get_ast_ml filename in
-  let opens = Syntactic.opens_of ast in
+  let* opens = Syntactic.get_opens filename in
   Stdio.printf "Number of opens: %d\n" (List.length opens);
   let* uses =
     List.filter ~f:(Fn.non (Syntactic.is_whitelisted whitelist)) opens
