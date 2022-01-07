@@ -14,7 +14,7 @@ The build dir can be fetched by parsing dune describe --format=csexp
 
 (* TODO: support for wildcard *)
 
-let whitelist = ["Base"]
+let whitelist = ["Base"; "Core"; "Core_kernel"]
 
 let infer_prefix filename qualify =
   let* unqualified = Syntactic.get_source_fragment filename qualify.start qualify.finish in
@@ -31,15 +31,22 @@ type open_summary = {
 let compute_summary filename uses =
   if List.is_empty uses then Result.return None
   else
-    let* prefix = infer_prefix filename (List.hd_exn uses) in
-    let uses =
-      List.map ~f:(fun s -> s.content) uses
-      |> List.map ~f:(String.chop_prefix ~prefix:(prefix ^ "."))
-    in
-    let* uses =
-      if List.exists ~f:Option.is_none uses then
-        Result.failf "Couldn't chop inferred prefix on use"
-      else Result.return (List.filter_opt uses)
+    let* prefix, uses =
+      match infer_prefix filename (List.hd_exn uses) with
+      | Ok prefix ->
+        let uses =
+          List.map ~f:(fun s -> s.content) uses
+          |> List.map ~f:(String.chop_prefix ~prefix:(prefix ^ "."))
+        in
+        let* uses =
+          if List.exists ~f:Option.is_none uses then
+            Result.failf "Couldn't chop inferred prefix on use"
+          else Result.return (List.filter_opt uses)
+        in
+        Result.return (prefix, uses)
+      | Error _ ->
+        let uses = List.map ~f:(fun s -> s.content) uses in
+        Result.return ("NOTINFERRED", uses)
     in
     let h = Hashtbl.create (module String) in
     List.iter ~f:(Hashtbl.incr h) uses;
