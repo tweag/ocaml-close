@@ -39,14 +39,40 @@ let get_source_fragment filename start finish =
     | Some line -> Result.return @@ String.sub line ~pos:start.col ~len:delta
 
 (* TODO proper ast parsing with error management *)
-module Utils = Ppxlib__Utils
-module IO = Utils.Ast_io 
+
+
+let parse_source_code ~kind ~input_name ~prefix_read_from_source ic
+  =
+  let open Stdppx in
+  try
+    let lexbuf = Lexing.from_channel ic in
+    let len = String.length prefix_read_from_source in
+    Bytes.blit_string ~src:prefix_read_from_source ~src_pos:0
+      ~dst:lexbuf.lex_buffer ~dst_pos:0 ~len;
+    lexbuf.lex_buffer_len <- len;
+    lexbuf.lex_curr_p <-
+      { pos_fname = input_name; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 };
+    (*Skip_hash_bang.skip_hash_bang lexbuf;*)
+    let ast =
+      match kind with
+      | `Intf -> `Intf (Parse.interface lexbuf)
+      | `Impl -> `Impl (Parse.implementation lexbuf)
+    in
+    Result.return ast
+  with exn -> (
+      match Location.Error.of_exn exn with
+      | None -> raise exn
+      | Some error -> Result.fail error
+    )
 
 let get_ast_ml filename =
-  match IO.read (IO.File filename)
-          ~input_kind:(Possibly_source (Utils.Kind.Impl, filename))
-  with
-  | Ok {ast = Impl s ; _ } -> Result.return s
+  let chan = Stdio.In_channel.create filename in
+  let ast =
+    parse_source_code ~kind:`Impl ~input_name:filename
+      ~prefix_read_from_source:"" chan
+  in
+  match ast with
+  | Ok (`Impl s) -> Result.return s
   | _ -> Result.failf "Couldn't parse %s as a ML file" filename
 
 let get_opens filename =
