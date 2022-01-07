@@ -13,4 +13,5 @@ let type_ast s =
 
 (* However we have to investigate version stability when using this *)
 
-(* we have to somehow fill the env with existing libraries :( *)
+(* we have to somehow fill the env with existing libraries :( 
+   look into merlin/src/kernel/mtyped.ml possible *)
