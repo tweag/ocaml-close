@@ -65,4 +65,5 @@ let get_ast_ml filename =
 
 let get_opens filename =
   let* ast = get_ast_ml filename in
+  (* ignore (Typed.type_ast ast) ; *)
   Result.return (opens_of ast)
