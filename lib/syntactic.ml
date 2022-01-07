@@ -38,38 +38,26 @@ let get_source_fragment filename start finish =
     | None -> Result.failf "No line %d in %s" start.line filename
     | Some line -> Result.return @@ String.sub line ~pos:start.col ~len:delta
 
-(* TODO proper ast parsing with error management *)
-
-
-let parse_source_code ~kind ~input_name ~prefix_read_from_source ic
-  =
-  let open Stdppx in
+let parse_source_code ~kind ~input_name ic =
   try
     let lexbuf = Lexing.from_channel ic in
-    let len = String.length prefix_read_from_source in
-    Bytes.blit_string ~src:prefix_read_from_source ~src_pos:0
-      ~dst:lexbuf.lex_buffer ~dst_pos:0 ~len;
-    lexbuf.lex_buffer_len <- len;
     lexbuf.lex_curr_p <-
-      { pos_fname = input_name; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 };
-    (*Skip_hash_bang.skip_hash_bang lexbuf;*)
-    let ast =
-      match kind with
+      { pos_fname = input_name; pos_lnum = 1; pos_bol = 0; pos_cnum = 0 } ;
+    let ast = match kind with
       | `Intf -> `Intf (Parse.interface lexbuf)
       | `Impl -> `Impl (Parse.implementation lexbuf)
-    in
-    Result.return ast
+    in Result.return ast
   with exn -> (
       match Location.Error.of_exn exn with
       | None -> raise exn
       | Some error -> Result.fail error
     )
 
+(* TODO support MLI *)
 let get_ast_ml filename =
   let chan = Stdio.In_channel.create filename in
   let ast =
-    parse_source_code ~kind:`Impl ~input_name:filename
-      ~prefix_read_from_source:"" chan
+    parse_source_code ~kind:`Impl ~input_name:filename chan
   in
   match ast with
   | Ok (`Impl s) -> Result.return s
