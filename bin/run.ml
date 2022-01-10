@@ -8,6 +8,14 @@ let verbose =
   let doc = "Report progress during processing." in
   Arg.(value & flag & info ["v"; "verbose"] ~doc)
 
+let conf_file =
+  let doc = "Force the usage of a configuration file." in
+  let env =
+    let doc = "Override the configuration to use." in
+    Arg.env_var ~doc "OCLOSE_CONF_FILE"
+  in
+  Arg.(value & opt (some file) None & info ~env ["c"; "conf"] ~doc)
+
 let info =
   let doc = "analyse a program to detect opens that make it less legible" in
   let man = [
@@ -18,7 +26,7 @@ let info =
 
 let close_t =
   let open Term in
-  const (Closelib.Close.filtered_analyse) $ filename $ verbose
+  const (Closelib.Close.filtered_analyse) $ filename $ verbose $ conf_file
   |> term_result
 
 let () = Term.eval (close_t, info) |> Term.exit
