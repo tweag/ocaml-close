@@ -4,7 +4,7 @@ open Utils
 
 let merlin ~filename args =
   let open Feather in
-  let args = ["single"] @ args @ ["-filename"; filename] in
+  let args = ["server"] @ args @ ["-filename"; filename] in
   cat filename |. process "ocamlmerlin" args
 
 let call_merlin ~filename ~command =
