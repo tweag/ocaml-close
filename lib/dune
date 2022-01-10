@@ -1,6 +1,8 @@
 (library
  (name closelib)
  (package ocamlclose)
- (libraries ppxlib feather yojson ppx_deriving_yojson.runtime stdio fpath core)
- (preprocess (pps ppxlib.metaquot ppx_deriving_yojson ppx_deriving.show))
-)
+ (libraries ppxlib feather yojson ppx_deriving_yojson.runtime stdio fpath core
+            sexplib)
+ (preprocess
+   (pps ppxlib.metaquot ppx_deriving_yojson
+        ppx_deriving.show ppx_sexp_conv)))
