@@ -1,4 +1,4 @@
-((whitelist (Base Core Core_kernel))
+((whitelist (Base Utils))
  (keep_rule
   (or (whitelisted
        exports_syntax
