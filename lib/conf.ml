@@ -1,13 +1,14 @@
 open Core
 open Utils
+open Sexplib
 
 type conf = {
   whitelist : string list;
-}[@@deriving yojson]
+}[@@deriving sexp]
 
 let default = {whitelist = []}
 
-let conf_file_name = ".ocamlclose.json"
+let conf_file_name = ".ocamlclose"
 
 let find_conf_file src =
   let rec search cur =
@@ -21,6 +22,14 @@ let find_conf_file src =
       | _ -> search (Fpath.parent cur)
   in search src
 
+let parse_conf filename =
+  try
+    let raw = Sexp.load_sexp filename in
+    Result.return (conf_of_sexp raw)
+  with
+  | Sexp.Parse_error {err_msg; _} -> Result.failf "Parse error '%s'" err_msg
+  | Failure _ -> Result.failf "File ended too soon"
+
 let read_conf ?conf_file () =
   let do_try () =
     let* filename =
@@ -31,9 +40,7 @@ let read_conf ?conf_file () =
                    |> Result.map_error ~f:(fun (`Msg g) -> g)
         in find_conf_file src
     in
-    let channel = Stdio.In_channel.create filename in
-    let raw = Yojson.Safe.from_channel channel in
-    conf_of_yojson raw
+    parse_conf filename
   in match do_try () with
   | Ok c -> c
   | Error m ->
