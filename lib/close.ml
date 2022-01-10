@@ -76,26 +76,43 @@ let compute_summary file uses =
     Some {module_name = prefix; total;
           groups; layer_only; imports_syntax}
 
-let print_summary_maybe = function
-  | Some sum -> Stdio.printf "%s\n" (show_open_summary sum)
-  | None -> Stdio.printf "One open with no use...\n"
+let apply_keep_rule conf (sum : open_summary) =
+  let open Conf in
+  let rec apply = function
+    | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
+    | Or l -> List.map ~f:apply l |> List.exists ~f:Fn.id
+    | Not b -> not (apply b)
+    | True -> true
+    | False -> false
+    | Min_use n -> sum.total >= n
+    | Min_exported n -> sum.groups >= n
+    | Whitelisted -> List.mem conf.whitelist sum.module_name ~equal:String.equal
+    | Exports_syntax -> sum.imports_syntax
+    | Exports_modules -> failwith "Exports_modules not yet implemented"
+    | Exports_modules_only -> sum.layer_only
+  in apply conf.keep_rule
 
-let analyse filename verbose conf_file =
-  let conf = Conf.read_conf ?conf_file () in
+let get_summaries filename verbose =
   let file = Stdio.In_channel.read_lines filename in
   let* () = Merlin.check_errors filename in
   if verbose then Stdio.printf "Merlin loaded!\n%!";
   let* opens = Syntactic.get_opens filename in
   if verbose then Stdio.printf "Number of opens: %d\n%!" (List.length opens);
   let* uses =
-    List.filter ~f:(Fn.non (Syntactic.is_whitelisted conf.whitelist)) opens
-    |> List.mapi ~f:(fun i x -> (i, x))
+    List.mapi ~f:(fun i x -> (i, x)) opens
     |> map_result ~f:(fun (i, x) ->
         if verbose then Stdio.printf "Processing %d\n%!" i;
         Merlin.uses_of_open filename x
       ) in
   let* summaries = map_result ~f:(compute_summary file) uses in
-  List.iter ~f:print_summary_maybe summaries;
+  List.filter_opt summaries |> Result.return
+
+let analyse filename verbose conf_file =
+  let conf = Conf.read_conf ?conf_file () in
+  let* summaries = get_summaries filename verbose in
+  let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
+  Stdio.printf "Candidates for removal:\n";
+  List.iter candidates ~f:(fun s -> Stdio.printf "%s\n" (show_open_summary s));
   Result.return ()
 
 let filtered_analyse f b c = analyse f b c |> filter_errors

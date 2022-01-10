@@ -1,3 +1,6 @@
-(
- (whitelist (Base Core Core_kernel))
-)
+((whitelist (Base Core Core_kernel))
+ (keep_rule
+  (or (whitelisted
+       exports_syntax
+       (min_exported 10)
+       exports_modules_only))))
