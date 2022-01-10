@@ -28,14 +28,13 @@ let is_whitelisted whitelist module_expr =
     List.exists ~f:(String.equal str) whitelist
   | _ -> false
 
-let get_source_fragment filename start finish =
-  let lines = Stdio.In_channel.read_lines filename in
+let get_source_fragment file start finish =
   if start.line <> finish.line then
     Result.fail "Source fragment over multiple lines not implemented"
   else
     let delta = finish.col - start.col in
-    match List.nth lines (start.line - 1) with
-    | None -> Result.failf "No line %d in %s" start.line filename
+    match List.nth file (start.line - 1) with
+    | None -> Result.failf "No line %d in file" start.line
     | Some line -> Result.return @@ String.sub line ~pos:start.col ~len:delta
 
 let parse_source_code ~kind ~input_name ic =
