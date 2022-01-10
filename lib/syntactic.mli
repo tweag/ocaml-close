@@ -2,7 +2,7 @@ val get_opens : string -> (Ppxlib.module_expr list, string) result
 (** [get_opens filename] returns a list of module expressions that are open in
     that file. *)
 
-val get_source_fragment : string -> Utils.pos -> Utils.pos -> (string, string) result
+val get_source_fragment : string list -> Utils.pos -> Utils.pos -> (string, string) result
 (** [get_source_fragment filename start finish] returns the string in the file
     delimited by the two positions. *)
 

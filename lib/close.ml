@@ -16,8 +16,8 @@ The build dir can be fetched by parsing dune describe --format=csexp
 
 let whitelist = ["Base"; "Core"; "Core_kernel"]
 
-let infer_prefix filename qualify =
-  let* unqualified = Syntactic.get_source_fragment filename qualify.start qualify.finish in
+let infer_prefix file qualify =
+  let* unqualified = Syntactic.get_source_fragment file qualify.start qualify.finish in
   Option.bind
     (String.chop_suffix qualify.content ~suffix:unqualified)
     ~f:(String.chop_suffix ~suffix:".")
@@ -28,11 +28,11 @@ type open_summary = {
   use_table : (string, int) Base.Hashtbl.t;
 }
 
-let compute_summary filename uses =
+let compute_summary file uses =
   if List.is_empty uses then Result.return None
   else
     let* prefix, uses =
-      match infer_prefix filename (List.hd_exn uses) with
+      match infer_prefix file (List.hd_exn uses) with
       | Ok prefix ->
         let uses =
           List.map ~f:(fun s -> s.content) uses
@@ -62,6 +62,7 @@ let print_summary_maybe = function
   | None -> Stdio.printf "One open with no use..."
 
 let analyse filename verbose =
+  let file = Stdio.In_channel.read_lines filename in
   let* () = Merlin.check_errors filename in
   if verbose then Stdio.printf "Merlin loaded!\n%!";
   let* opens = Syntactic.get_opens filename in
@@ -73,7 +74,7 @@ let analyse filename verbose =
         if verbose then Stdio.printf "Processing %d\n%!" i;
         Merlin.uses_of_open filename x
       ) in
-  let* summaries = map_result ~f:(compute_summary filename) uses in
+  let* summaries = map_result ~f:(compute_summary file) uses in
   List.iter ~f:print_summary_maybe summaries;
   Result.return ()
 
