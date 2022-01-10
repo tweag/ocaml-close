@@ -14,9 +14,6 @@ The build dir can be fetched by parsing dune describe --format=csexp
 
 (* TODO: support for wildcard *)
 
-(* let whitelist = ["Base"; "Core"; "Core_kernel"] *)
-let whitelist = []
-
 let infer_prefix file qualify =
   let* unqualified = Syntactic.get_source_fragment file qualify.start qualify.finish in
   Option.bind
@@ -83,14 +80,15 @@ let print_summary_maybe = function
   | Some sum -> Stdio.printf "%s\n" (show_open_summary sum)
   | None -> Stdio.printf "One open with no use...\n"
 
-let analyse filename verbose =
+let analyse filename verbose conf_file =
+  let conf = Conf.read_conf ?conf_file () in
   let file = Stdio.In_channel.read_lines filename in
   let* () = Merlin.check_errors filename in
   if verbose then Stdio.printf "Merlin loaded!\n%!";
   let* opens = Syntactic.get_opens filename in
   if verbose then Stdio.printf "Number of opens: %d\n%!" (List.length opens);
   let* uses =
-    List.filter ~f:(Fn.non (Syntactic.is_whitelisted whitelist)) opens
+    List.filter ~f:(Fn.non (Syntactic.is_whitelisted conf.whitelist)) opens
     |> List.mapi ~f:(fun i x -> (i, x))
     |> map_result ~f:(fun (i, x) ->
         if verbose then Stdio.printf "Processing %d\n%!" i;
@@ -100,4 +98,4 @@ let analyse filename verbose =
   List.iter ~f:print_summary_maybe summaries;
   Result.return ()
 
-let filtered_analyse f b = analyse f b |> filter_errors
+let filtered_analyse f b c = analyse f b c |> filter_errors
