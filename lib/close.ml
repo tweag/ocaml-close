@@ -14,7 +14,8 @@ The build dir can be fetched by parsing dune describe --format=csexp
 
 (* TODO: support for wildcard *)
 
-let whitelist = ["Base"; "Core"; "Core_kernel"]
+(* let whitelist = ["Base"; "Core"; "Core_kernel"] *)
+let whitelist = []
 
 let infer_prefix file qualify =
   let* unqualified = Syntactic.get_source_fragment file qualify.start qualify.finish in
@@ -25,8 +26,22 @@ let infer_prefix file qualify =
 
 type open_summary = {
   module_name : string;
-  use_table : (string, int) Base.Hashtbl.t;
-}
+  total : int;
+  groups : int;
+  layer_only : bool;
+  imports_syntax : bool;
+}[@@deriving show]
+
+let is_module_id id =
+  String.split ~on:'.' id
+  |> List.for_all ~f:(fun m -> Char.is_uppercase m.[0])
+
+let is_operator_id id =
+  String.split ~on:'.' id
+  |> List.last_exn
+  |> String.exists ~f:(Fn.non Char.(fun c ->
+      is_alphanum c || c = '_'
+    ))
 
 let compute_summary file uses =
   if List.is_empty uses then Result.return None
@@ -48,18 +63,25 @@ let compute_summary file uses =
         let uses = List.map ~f:(fun s -> s.content) uses in
         Result.return ("NOTINFERRED", uses)
     in
+    let total = List.length uses in
     let h = Hashtbl.create (module String) in
     List.iter ~f:(Hashtbl.incr h) uses;
-    Result.return @@ Some {module_name = prefix ; use_table = h}
-
-let print_summary sum =
-  Stdio.printf "Module %s : " sum.module_name ;
-  let s = Hashtbl.sexp_of_t String.sexp_of_t Int.sexp_of_t sum.use_table in
-  Stdio.printf "%s\n" (Sexp.to_string_hum s)
+    let groups = Hashtbl.length h in
+    let layer_only =
+      Hashtbl.keys h
+      |> List.for_all ~f:is_module_id
+    in
+    let imports_syntax = 
+      Hashtbl.keys h
+      |> List.exists ~f:is_operator_id
+    in
+    Result.return @@
+    Some {module_name = prefix; total;
+          groups; layer_only; imports_syntax}
 
 let print_summary_maybe = function
-  | Some sum -> print_summary sum
-  | None -> Stdio.printf "One open with no use..."
+  | Some sum -> Stdio.printf "%s\n" (show_open_summary sum)
+  | None -> Stdio.printf "One open with no use...\n"
 
 let analyse filename verbose =
   let file = Stdio.In_channel.read_lines filename in
