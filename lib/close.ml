@@ -61,15 +61,20 @@ let print_summary_maybe = function
   | Some sum -> print_summary sum
   | None -> Stdio.printf "One open with no use..."
 
-let analyse filename =
+let analyse filename verbose =
   let* () = Merlin.check_errors filename in
+  if verbose then Stdio.printf "Merlin loaded!\n%!";
   let* opens = Syntactic.get_opens filename in
-  Stdio.printf "Number of opens: %d\n" (List.length opens);
+  if verbose then Stdio.printf "Number of opens: %d\n%!" (List.length opens);
   let* uses =
     List.filter ~f:(Fn.non (Syntactic.is_whitelisted whitelist)) opens
-    |> map_result ~f:(Merlin.uses_of_open filename) in
+    |> List.mapi ~f:(fun i x -> (i, x))
+    |> map_result ~f:(fun (i, x) ->
+        if verbose then Stdio.printf "Processing %d\n%!" i;
+        Merlin.uses_of_open filename x
+      ) in
   let* summaries = map_result ~f:(compute_summary filename) uses in
   List.iter ~f:print_summary_maybe summaries;
   Result.return ()
 
-let filtered_analyse filename = analyse filename |> filter_errors
+let filtered_analyse f b = analyse f b |> filter_errors
