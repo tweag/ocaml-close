@@ -29,9 +29,7 @@ type open_summary = {
   imports_syntax : bool;
 }[@@deriving show]
 
-let is_module_id id =
-  String.split ~on:'.' id
-  |> List.for_all ~f:(fun m -> Char.is_uppercase m.[0])
+let is_module_id id = Char.is_uppercase id.[0]
 
 let is_operator_id id =
   String.split ~on:'.' id
