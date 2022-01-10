@@ -9,6 +9,20 @@ type qualify = {
   content : string
 }[@@deriving yojson]
 
+type keep_rule =
+  | And of keep_rule list
+  | Or of keep_rule list
+  | Not of keep_rule
+  | True
+  | False
+  | Min_use of int
+  | Min_exported of int
+  | Whitelisted
+  | Exports_syntax
+  | Exports_modules
+  | Exports_modules_only
+[@@deriving sexp]
+
 let string_of_position pos =
   Printf.sprintf "%d:%d" pos.pos_lnum pos.pos_cnum
 

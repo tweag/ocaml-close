@@ -4,9 +4,11 @@ open Sexplib
 
 type conf = {
   whitelist : string list;
+  keep_rule : keep_rule;
 }[@@deriving sexp]
 
-let default = {whitelist = []}
+let default_rule = Whitelisted
+let default = {whitelist = []; keep_rule = default_rule}
 
 let conf_file_name = ".ocamlclose"
 
@@ -29,6 +31,7 @@ let parse_conf filename =
   with
   | Sexp.Parse_error {err_msg; _} -> Result.failf "Parse error '%s'" err_msg
   | Failure _ -> Result.failf "File ended too soon"
+  | e -> Result.failf "Conversion error '%s'" (Exn.to_string e)
 
 let read_conf ?conf_file () =
   let do_try () =
