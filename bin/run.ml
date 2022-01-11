@@ -4,9 +4,23 @@ let filenames =
   let doc = "Paths to the OCaml sources to read. Only .ml files." in
   Arg.(non_empty & pos_all file [] & info [] ~docv:"FILES" ~doc)
 
-let verbose =
-  let doc = "Report progress during processing." in
-  Arg.(value & flag & info ["v"; "verbose"] ~doc)
+let report =
+  let parse =
+    let open Base in function
+    | "bar" -> Result.return `Bar
+    | "text" -> Result.return `Text
+    | "none" -> Result.return `None
+    | _ -> Result.fail (`Msg "must be one of 'bar', 'text' or 'none'.")
+  in
+  let print fmt x = let text = match x with
+      | `Bar -> "bar"
+      | `Text -> "text"
+      | `None -> "none"
+    in Format.pp_print_string fmt text
+  in
+  let doc = "Report progress during processing.\
+             The value $(docv) must be one of `bar', `text' or `none'" in
+  Arg.(value & opt (conv (parse, print)) `Bar & info ["r"; "report"] ~doc)
 
 let conf_file =
   let doc = "Force the usage of a configuration file." in
@@ -28,8 +42,8 @@ let info =
 let close_t =
   let open Term in
   let open Closelib.Close in
-  let pack_args verbose conf_file = {verbose; conf_file} in
-  let args = const pack_args $ verbose $ conf_file in
+  let pack_args report conf_file = {report; conf_file} in
+  let args = const pack_args $ report $ conf_file in
   let applied = const execute $ args $ filenames in
   term_result applied
 
