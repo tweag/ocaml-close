@@ -1,8 +1,8 @@
 open Cmdliner
 
-let filename =
-  let doc = "Path to the OCaml source to read. Only .ml files." in
-  Arg.(required & pos 0 (some file) None & info [] ~docv:"FILE" ~doc)
+let filenames =
+  let doc = "Paths to the OCaml sources to read. Only .ml files." in
+  Arg.(non_empty & pos_all file [] & info [] ~docv:"FILES" ~doc)
 
 let verbose =
   let doc = "Report progress during processing." in
@@ -24,9 +24,13 @@ let info =
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
+
 let close_t =
   let open Term in
-  const (Closelib.Close.filtered_analyse) $ filename $ verbose $ conf_file
-  |> term_result
+  let open Closelib.Close in
+  let pack_args verbose conf_file = {verbose; conf_file} in
+  let args = const pack_args $ verbose $ conf_file in
+  let applied = const execute $ args $ filenames in
+  term_result applied
 
 let () = Term.eval (close_t, info) |> Term.exit
