@@ -23,10 +23,10 @@ type keep_rule =
   | Exports_modules_only
 [@@deriving sexp]
 
-let string_of_position pos =
-  Printf.sprintf "%d:%d" pos.pos_lnum pos.pos_cnum
+let pos_of_position posi =
+  {line = posi.pos_lnum; col = posi.pos_cnum - posi.pos_bol}
 
-let string_of_location loc = string_of_position loc.loc_start
+let string_of_pos pos = Printf.sprintf "%d:%d" pos.line pos.col
 
 let (let*) = Stdlib.Result.bind
 

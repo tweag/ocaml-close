@@ -10,7 +10,8 @@ let merlin ~filename args =
 let call_merlin ~filename ~command =
   let open Yojson.Safe in
   let args = match command with
-    | `Open pos -> ["refactor-open"; "-position"; pos; "-action"; "qualify"]
+    | `Open pos -> ["refactor-open"; "-position";
+                    string_of_pos pos; "-action"; "qualify"]
     | `Errors -> ["errors"]
   in
   try
@@ -37,7 +38,7 @@ let check_errors filename =
     Result.failf "Merlin has errors. Here is the first one:\n%s\n" errors
 
 let uses_of_open filename module_expr =
-  let pos = string_of_location module_expr.pmod_loc in
+  let pos = pos_of_position module_expr.pmod_loc.loc_start in
   let command = `Open pos in
   let* answer = call_merlin ~filename ~command in
   Yojson.Safe.Util.to_list answer
