@@ -27,7 +27,7 @@ type open_summary = {
   groups : int;
   layer_only : bool;
   imports_syntax : bool;
-}[@@deriving show]
+}
 
 let is_module_id id = Char.is_uppercase id.[0]
 
@@ -105,12 +105,20 @@ let get_summaries filename verbose =
   let* summaries = map_result ~f:(compute_summary file) uses in
   List.filter_opt summaries |> Result.return
 
-let analyse filename verbose conf_file =
+type args = {
+  verbose : bool;
+  conf_file : string option;
+}
+
+let analyse {conf_file; verbose} filename =
   let conf = Conf.read_conf ?conf_file () in
   let* summaries = get_summaries filename verbose in
   let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
-  Stdio.printf "Candidates for removal:\n";
-  List.iter candidates ~f:(fun s -> Stdio.printf "%s\n" (show_open_summary s));
+  List.iter candidates ~f:(fun s ->
+      Stdio.printf "%s: refactor open %s\n%!" filename s.module_name
+    ) ;
   Result.return ()
 
-let filtered_analyse f b c = analyse f b c |> filter_errors
+let execute args filenames =
+  (let* _ = map_result ~f:(analyse args) filenames in
+   Result.return ()) |> filter_errors
