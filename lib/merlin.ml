@@ -13,19 +13,20 @@ let call_merlin ~filename ~command =
     | `Open pos -> ["refactor-open"; "-position"; pos; "-action"; "qualify"]
     | `Errors -> ["errors"]
   in
+  try
   let raw = 
     merlin ~filename args
     |> Feather.(collect stdout)
     |> from_string
   in
   assert String.(Util.(member "class" raw |> to_string = "return"));
-  Util.member "value" raw
+  Result.return (Util.member "value" raw)
+  with e ->
+    Result.failf "Error while calling/parsing merlin: %s" (Exn.to_string e)
 
 let check_errors filename =
-  let errors =
-    call_merlin ~filename ~command:`Errors
-    |> Yojson.Safe.Util.to_list
-  in
+  let* errors = call_merlin ~filename ~command:`Errors in
+  let errors = Yojson.Safe.Util.to_list errors in
   if List.is_empty errors then Result.return ()
   else
     let errors = 
@@ -36,8 +37,8 @@ let check_errors filename =
     Result.failf "Merlin has errors. Here is the first one:\n%s\n" errors
 
 let uses_of_open filename module_expr =
-  let pos = string_of_location module_expr.pmod_loc  in
+  let pos = string_of_location module_expr.pmod_loc in
   let command = `Open pos in
-  call_merlin ~filename ~command
-  |> Yojson.Safe.Util.to_list
+  let* answer = call_merlin ~filename ~command in
+  Yojson.Safe.Util.to_list answer
   |> map_result ~f:qualify_of_yojson
