@@ -58,6 +58,7 @@ let get_ast_ml filename =
   let ast =
     parse_source_code ~kind:`Impl ~input_name:filename chan
   in
+  Stdio.In_channel.close chan ;
   match ast with
   | Ok (`Impl s) -> Result.return s
   | _ -> Result.failf "Couldn't parse %s as a ML file" filename
