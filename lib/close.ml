@@ -93,13 +93,13 @@ let apply_keep_rule conf (sum : open_summary) =
 let get_summaries filename verbose =
   let file = Stdio.In_channel.read_lines filename in
   let* () = Merlin.check_errors filename in
-  if verbose then Stdio.printf "Merlin loaded!\n%!";
+  if verbose then Stdio.printf "Merlin OK\n%!";
   let* opens = Syntactic.get_opens filename in
-  if verbose then Stdio.printf "Number of opens: %d\n%!" (List.length opens);
+  let total = List.length opens in
   let* uses =
     List.mapi ~f:(fun i x -> (i, x)) opens
     |> map_result ~f:(fun (i, x) ->
-        if verbose then Stdio.printf "Processing %d\n%!" i;
+        if verbose then Stdio.printf "%d/%d\n%!" (i + 1) total;
         Merlin.uses_of_open filename x
       ) in
   let* summaries = map_result ~f:(compute_summary file) uses in
@@ -111,14 +111,27 @@ type args = {
 }
 
 let analyse {conf_file; verbose} filename =
-  let conf = Conf.read_conf ?conf_file () in
-  let* summaries = get_summaries filename verbose in
-  let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
-  List.iter candidates ~f:(fun s ->
-      Stdio.printf "%s: refactor open %s\n%!" filename s.module_name
-    ) ;
-  Result.return ()
+  begin
+    let conf = Conf.read_conf ?conf_file () in
+    let* summaries = get_summaries filename verbose in
+    let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
+    List.iter candidates ~f:(fun s ->
+        Stdio.printf "%s: refactor open %s\n%!" filename s.module_name
+      ) ;
+    Result.return ()
+  end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
 
 let execute args filenames =
-  (let* _ = map_result ~f:(analyse args) filenames in
-   Result.return ()) |> filter_errors
+  let total = List.length filenames in
+  let process_one n filename =
+    if args.verbose then Stdio.printf "Processing %s (%d/%d)\n%!" filename (n + 1) total ;
+    analyse args filename
+  in
+  List.mapi ~f:process_one filenames
+  |> Result.combine_errors
+  |> Result.map_error ~f:(fun err_list ->
+      let errors = String.concat ~sep:"\n" err_list in
+      Printf.sprintf "There were errors during processing:\n%s" errors
+    )
+  |> Result.map ~f:ignore
+  |> filter_errors
