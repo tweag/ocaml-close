@@ -1,5 +1,5 @@
 type args = {
-  verbose : bool;
+  report : [`Bar | `Text | `None];
   conf_file : string option;
 }
 

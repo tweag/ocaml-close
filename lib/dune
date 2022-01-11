@@ -2,7 +2,7 @@
  (name closelib)
  (package ocamlclose)
  (libraries ppxlib feather yojson ppx_deriving_yojson.runtime stdio fpath core
-            sexplib)
+            sexplib progress)
  (preprocess
    (pps ppxlib.metaquot ppx_deriving_yojson
         ppx_deriving.show ppx_sexp_conv)))
