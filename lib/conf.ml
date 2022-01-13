@@ -2,21 +2,53 @@ open Core
 open Utils
 open Sexplib
 
+type expr =
+  | Const of int
+  | Uses
+  | Symbols
+[@@deriving sexp_of]
+
+let is_int s = try ignore @@ Int.of_string s; true with _ -> false
+
+let expr_of_sexp =
+  let open Sexp in function
+    | Atom x when is_int x -> Const (Int.of_string x)
+    | Atom "uses" -> Uses
+    | Atom "symbols" -> Symbols
+    | _ -> failwith "Not an exp"
+
 type rule =
   | And of rule list
   | Or of rule list
   | Not of rule
+  | Eq of expr * expr
+  | Leq of expr * expr
+  | Geq of expr * expr
   | True
   | False
-  | Min_use of int
-  | Min_exported of int
   | In_list of string list
   | Exports_syntax
   | Exports_modules
   | Exports_modules_only
-[@@deriving sexp]
+[@@deriving sexp_of]
 
-type rule_kind = Keep | Remove | Convert_to_local | Move
+let rec rule_of_sexp =
+  let open Sexp in function
+    | Atom "true" -> True
+    | Atom "false" -> False
+    | List [Atom "and"; r] -> And (List.t_of_sexp rule_of_sexp r)
+    | List [Atom "or"; r] -> Or (List.t_of_sexp rule_of_sexp r)
+    | List [Atom "not"; r] -> Not (rule_of_sexp r)
+    | List [Atom "="; a; b] -> Eq (expr_of_sexp a, expr_of_sexp b)
+    | List [Atom "<="; a; b] -> Leq (expr_of_sexp a, expr_of_sexp b)
+    | List [Atom ">="; a; b] -> Geq (expr_of_sexp a, expr_of_sexp b)
+    | List [Atom "in-list"; l] -> In_list (List.t_of_sexp Sexp.to_string l)
+    | Atom "exports-syntax" -> Exports_syntax
+    | Atom "exports-modules-only" -> Exports_modules_only
+    | Atom "exports-modules" -> Exports_modules
+    | s -> Stdio.printf "Unexpected token: %s\n" (Sexp.to_string s); failwith "Not a rule"
+
+type rule_kind = Keep | Remove | To_local | Move
 [@@deriving sexp]
 
 type conf = {
