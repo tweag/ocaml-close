@@ -2,12 +2,29 @@ open Core
 open Utils
 open Sexplib
 
+type rule =
+  | And of rule list
+  | Or of rule list
+  | Not of rule
+  | True
+  | False
+  | Min_use of int
+  | Min_exported of int
+  | In_list of string list
+  | Exports_syntax
+  | Exports_modules
+  | Exports_modules_only
+[@@deriving sexp]
+
+type rule_kind = Keep | Remove | Convert_to_local | Move
+[@@deriving sexp]
+
 type conf = {
-  keep_rule : keep_rule;
+  rules : (rule_kind * rule) list;
+  precedence : rule_kind list;
 }[@@deriving sexp]
 
-let default_rule = In_list ["Base"]
-let default = {keep_rule = default_rule}
+let default = {rules = []; precedence = []}
 
 let conf_file_name = ".ocamlclose"
 

@@ -72,7 +72,15 @@ let compute_summary file uses =
     Some {module_name = prefix; total;
           groups; layer_only; imports_syntax}
 
-let apply_keep_rule conf (sum : open_summary) =
+let enact_decision filename sum =
+  let open Conf in
+  Progress.interject_with (fun () -> function
+      | Keep -> ()
+      | Remove -> Stdio.printf "%s: refactor open %s\n" filename sum.module_name
+      | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
+    )
+
+let apply_rule rule sum =
   let open Conf in
   let rec apply = function
     | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
@@ -86,7 +94,20 @@ let apply_keep_rule conf (sum : open_summary) =
     | Exports_syntax -> sum.imports_syntax
     | Exports_modules -> failwith "Exports_modules not yet implemented"
     | Exports_modules_only -> sum.layer_only
-  in apply conf.keep_rule
+  in apply rule
+
+let make_decision filename conf sum =
+  let open Conf in
+  let answers =
+    List.map ~f:(fun (x, rule) -> (x, apply_rule rule sum)) conf.rules
+  in
+  let decision =
+    List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
+      match List.Assoc.find ~equal:Poly.equal answers kind with
+      | None | Some false -> acc
+      | Some true -> kind
+    ) in
+  enact_decision filename sum decision
 
 module Progress_bar = struct
   open Progress
@@ -133,12 +154,7 @@ let analyse {conf_file; report} oreport filename =
     let conf = Conf.read_conf ?conf_file () in
     let* _ = Typed.Extraction.get_typed_tree ~report filename in
     let* summaries = get_summaries filename report oreport in
-    let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
-    Progress.interject_with (fun () ->
-        List.iter candidates ~f:(fun s ->
-            Stdio.printf "%s: refactor open %s\n%!" filename s.module_name
-          )
-      ) ;
+    List.iter summaries ~f:(make_decision filename conf);
     Result.return ()
   end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
 

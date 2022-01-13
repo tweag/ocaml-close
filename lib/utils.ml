@@ -8,20 +8,6 @@ type qualify = {
   content : string
 }[@@deriving yojson]
 
-type keep_rule =
-  | And of keep_rule list
-  | Or of keep_rule list
-  | Not of keep_rule
-  | True
-  | False
-  | Min_use of int
-  | Min_exported of int
-  | In_list of string list
-  | Exports_syntax
-  | Exports_modules
-  | Exports_modules_only
-[@@deriving sexp]
-
 let (let*) = Stdlib.Result.bind
 let filter_errors = Result.map_error ~f:(fun m -> `Msg m)
 let norm_error = Result.map_error ~f:(fun (`Msg m) -> m)
