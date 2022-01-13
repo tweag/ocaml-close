@@ -1,5 +1,3 @@
-(*open Core
-open Utils*)
 open Core
 open Utils
 
@@ -18,18 +16,25 @@ let find_dune_root () =
     | Error _ -> src
   in Result.return (find_farthest first)
 
-let call_describe () =
-  let open Feather in
-  let {stdout; stderr; status} =
-    process "dune" ["describe"; "--format=csexp"; "--lang=0.1"] |> collect everything
-  in
-  if status = 0 then
-    let module Csexp = Csexp.Make(Sexp) in
-    Csexp.parse_string stdout
-    |> Result.map_error ~f:(fun (_, s) ->
-        Printf.sprintf "dune describe's output could not be parsed: %s" s
-      )
-  else Result.fail stderr
+(* Cache it *)
+let call_describe =
+  let cache = ref None in fun () ->
+    match !cache with
+    | Some x -> Result.return x
+    | None ->
+      let open Feather in
+      let {stdout; stderr; status} =
+        process "dune" ["describe"; "--format=csexp"; "--lang=0.1"] |> collect everything
+      in
+      if status = 0 then
+        let module Csexp = Csexp.Make(Sexp) in
+        let* sexp =
+          Csexp.parse_string stdout
+          |> Result.map_error ~f:(fun (_, s) ->
+              Printf.sprintf "dune describe's output could not be parsed: %s" s
+            )
+        in cache := Some sexp ; Result.return sexp
+      else Result.fail stderr
 
 let parse_describe path t =
   let open Sexp in
