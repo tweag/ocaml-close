@@ -126,6 +126,7 @@ end
 
 let get_summaries filename report oreport =
   let file = Stdio.In_channel.read_lines filename in
+  oreport ("Merlin", 0);
   let* () = Merlin.check_errors filename in
   if Poly.(report = `Text) then Stdio.printf "Merlin OK\n%!";
   let* opens = Syntactic.get_opens filename in
