@@ -4,12 +4,19 @@ open Core
 open Utils
 
 let find_dune_root () = 
-  (* TODO: continue searching and return last one *)
-  let src = Sys.getcwd () in
-  let find x = Utils.find_file ~containing_folder:true x src in
-  match find "dune-project", find "dune-workspace" with
-  | Ok p, _ | _, Ok p -> Result.return p
-  | error, _ -> error
+  let* src = Sys.getcwd () |> Fpath.of_string |> norm_error in
+  let find_from src =
+    let find x = Utils.find_file ~containing_folder:true x src in
+    match find "dune-project", find "dune-workspace" with
+    | Ok p, _ | _, Ok p -> Result.return p
+    | error, _ -> error
+  in
+  let* first = find_from src in
+  let rec find_farthest src =
+    match find_from (Fpath.parent src) with
+    | Ok src' -> find_farthest src'
+    | Error _ -> src
+  in Result.return (find_farthest first)
 
 let call_describe () =
   let open Feather in
@@ -62,7 +69,6 @@ let find_cmt_location ~report filename =
   let of_string x = Fpath.of_string x |> norm_error in
   let* filename = of_string filename in
   let* dune_root = find_dune_root () in
-  let* dune_root = of_string dune_root in
   let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
   let cwd = Fpath.to_dir_path cwd in
   let* relative_cwd =
@@ -93,6 +99,8 @@ let find_cmt_location ~report filename =
       else Result.failf "Could not build cmt: %s\n" err
   in
   Result.return finals
+
+(** TODO: Call describe only once when handling multiple files *)
 
 let get_typed_tree ~report filename =
   let* path = find_cmt_location ~report filename in
