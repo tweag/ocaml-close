@@ -21,6 +21,7 @@
     ppx_deriving
     ppx_sexp_conv
     ppx_deriving_yojson
+    csexp
     stdio
     cmdliner
     fpath

@@ -12,18 +12,6 @@ let default = {whitelist = []; keep_rule = default_rule}
 
 let conf_file_name = ".ocamlclose"
 
-let find_conf_file src =
-  let rec search cur =
-    let cur = Fpath.normalize cur in
-    if Fpath.is_root cur then
-      Result.failf "Could not find a %s file anywhere" conf_file_name
-    else
-      let f = Fpath.add_seg cur conf_file_name |> Fpath.to_string in
-      match Sys.file_exists f with
-      | `Yes -> Result.return f
-      | _ -> search (Fpath.parent cur)
-  in search src
-
 let parse_conf filename =
   try
     let raw = Sexp.load_sexp filename in
@@ -39,9 +27,8 @@ let read_conf ?conf_file () =
       match conf_file with
       | Some x -> Result.return x
       | None ->
-        let* src = Sys.getcwd () |> Fpath.of_string
-                   |> Result.map_error ~f:(fun (`Msg g) -> g)
-        in find_conf_file src
+        let src = Sys.getcwd () in
+        find_file conf_file_name src
     in
     parse_conf filename
   in match do_try () with
