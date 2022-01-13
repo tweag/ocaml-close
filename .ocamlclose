@@ -1,11 +1,11 @@
 ((rules
    ((keep
-      (or ((in_list (Base))
-           exports_syntax
-           (min_exported 4)
-           (min_use 10)
-           exports_modules_only)))
-    (remove true)
-    (convert_to_local false)
+      (or ((in-list ("Base" "Core"))
+           exports-syntax
+           exports-modules-only)))
+    (remove
+      (or ((<= symbols 4)
+           (<= uses 10))))
+    (to_local false)
     (move false)))
- (precedence (keep remove convert_to_local move)))
+ (precedence (keep remove to_local move)))

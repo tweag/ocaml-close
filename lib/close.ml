@@ -2,14 +2,6 @@ open Base
 open Utils
 
 (* Possible TODO: use typerex-lint ? But it's outdated *)
-
-(* Note : usage of ocp-index in one file
-ocp-index print -F Dune__exe__Close
-   --context=src/close.ml:4,5
-   --build=_build/default/src/.close.eobjs/byte 
-   whitelist 
-*)
-
 (* TODO: support for wildcard *)
 
 let infer_prefix file qualify =
@@ -82,14 +74,20 @@ let enact_decision filename sum =
 
 let apply_rule rule sum =
   let open Conf in
+  let eval = function
+    | Const n -> n
+    | Uses -> sum.total
+    | Symbols -> sum.groups
+  in
   let rec apply = function
     | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
     | Or l -> List.map ~f:apply l |> List.exists ~f:Fn.id
     | Not b -> not (apply b)
+    | Eq (e1, e2) -> (eval e1) = (eval e2)
+    | Leq (e1, e2) -> (eval e1) <= (eval e2)
+    | Geq (e1, e2) -> (eval e1) >= (eval e2)
     | True -> true
     | False -> false
-    | Min_use n -> sum.total >= n
-    | Min_exported n -> sum.groups >= n
     | In_list l -> List.mem l sum.module_name ~equal:String.equal
     | Exports_syntax -> sum.imports_syntax
     | Exports_modules -> failwith "Exports_modules not yet implemented"
@@ -103,10 +101,10 @@ let make_decision filename conf sum =
   in
   let decision =
     List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
-      match List.Assoc.find ~equal:Poly.equal answers kind with
-      | None | Some false -> acc
-      | Some true -> kind
-    ) in
+        match List.Assoc.find ~equal:Poly.equal answers kind with
+        | None | Some false -> acc
+        | Some true -> kind
+      ) in
   enact_decision filename sum decision
 
 module Progress_bar = struct
@@ -136,9 +134,9 @@ let get_summaries filename report oreport =
     List.mapi ~f:(fun i x -> (i, x)) opens
     |> map_result ~f:(fun (i, x) ->
         (match report with
-        | `Bar -> oreport (100 * i / total)
-        | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
-        | `None -> ());
+         | `Bar -> oreport (100 * (i + 1) / total)
+         | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
+         | `None -> ());
         Merlin.uses_of_open filename x
       ) in
   let* summaries = map_result ~f:(compute_summary file) uses in
@@ -151,6 +149,7 @@ type args = {
 
 let analyse {conf_file; report} oreport filename =
   begin
+    oreport 0;
     let conf = Conf.read_conf ?conf_file () in
     let* _ = Typed.Extraction.get_typed_tree ~report filename in
     let* summaries = get_summaries filename report oreport in
@@ -164,9 +163,9 @@ let execute args filenames =
   let go oreport freport =
     let process_one n filename =
       (match args.report with
-      | `Bar -> freport 1
-      | `Text -> Stdio.printf "Processing %s (%d/%d)\n%!" filename (n + 1) total
-      | `None -> ());
+       | `Bar -> freport 1
+       | `Text -> Stdio.printf "Processing %s (%d/%d)\n%!" filename (n + 1) total
+       | `None -> ());
       analyse args oreport filename
     in
     List.mapi ~f:process_one filenames
