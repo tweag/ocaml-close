@@ -13,11 +13,17 @@
   (synopsis "Kill 'em open")
   (description "Kill 'm open")
   (depends
-    base
+    core
+    feather
     ppxlib
     yojson
+    sexplib
+    ppx_deriving
+    ppx_sexp_conv
     ppx_deriving_yojson
     stdio
     cmdliner
+    fpath
+    progress
   )
 )
