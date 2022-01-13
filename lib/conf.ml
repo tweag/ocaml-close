@@ -28,7 +28,8 @@ let read_conf ?conf_file () =
       | Some x -> Result.return x
       | None ->
         let src = Sys.getcwd () in
-        find_file conf_file_name src
+        let* found = find_file_s conf_file_name src in
+        Result.return found
     in
     parse_conf filename
   in match do_try () with
