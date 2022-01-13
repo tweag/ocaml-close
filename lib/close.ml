@@ -152,7 +152,7 @@ let analyse {conf_file; report} oreport filename =
   begin
     oreport ("Fetching", 0);
     let conf = Conf.read_conf ?conf_file () in
-    let* _ = Typed.Extraction.get_typed_tree ~report filename in
+    let* _ = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
     let* summaries = get_summaries filename report oreport in
     List.iter summaries ~f:(make_decision filename conf);
     Result.return ()
