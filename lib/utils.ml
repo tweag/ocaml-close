@@ -16,7 +16,7 @@ type keep_rule =
   | False
   | Min_use of int
   | Min_exported of int
-  | Whitelisted
+  | In_list of string list
   | Exports_syntax
   | Exports_modules
   | Exports_modules_only

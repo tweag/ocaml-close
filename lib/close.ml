@@ -8,8 +8,6 @@ ocp-index print -F Dune__exe__Close
    --context=src/close.ml:4,5
    --build=_build/default/src/.close.eobjs/byte 
    whitelist 
-
-The build dir can be fetched by parsing dune describe --format=csexp
 *)
 
 (* TODO: support for wildcard *)
@@ -84,7 +82,7 @@ let apply_keep_rule conf (sum : open_summary) =
     | False -> false
     | Min_use n -> sum.total >= n
     | Min_exported n -> sum.groups >= n
-    | Whitelisted -> List.mem conf.whitelist sum.module_name ~equal:String.equal
+    | In_list l -> List.mem l sum.module_name ~equal:String.equal
     | Exports_syntax -> sum.imports_syntax
     | Exports_modules -> failwith "Exports_modules not yet implemented"
     | Exports_modules_only -> sum.layer_only

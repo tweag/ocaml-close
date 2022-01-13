@@ -3,12 +3,11 @@ open Utils
 open Sexplib
 
 type conf = {
-  whitelist : string list;
   keep_rule : keep_rule;
 }[@@deriving sexp]
 
-let default_rule = Whitelisted
-let default = {whitelist = []; keep_rule = default_rule}
+let default_rule = In_list ["Base"]
+let default = {keep_rule = default_rule}
 
 let conf_file_name = ".ocamlclose"
 
@@ -37,6 +36,6 @@ let read_conf ?conf_file () =
   | Error m ->
     Stdio.printf
       "Could not load configuration: %s.\n\
-       Falling back to default config.\n"
-      m;
+       Falling back to default config: %s.\n"
+      m (sexp_of_conf default |> Sexp.to_string_hum);
     default

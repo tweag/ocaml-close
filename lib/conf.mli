@@ -1,7 +1,6 @@
 open Utils
 
 type conf = {
-  whitelist : string list;
   keep_rule : keep_rule;
 }
 

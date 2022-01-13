@@ -1,7 +1,6 @@
-((whitelist (Base))
- (keep_rule
-  (or (whitelisted
-       exports_syntax
-       (min_exported 4)
-       (min_use 10)
-       exports_modules_only))))
+((keep_rule
+   (or ((in_list (Base))
+        exports_syntax
+        (min_exported 4)
+        (min_use 10)
+        exports_modules_only))))
