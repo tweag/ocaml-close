@@ -50,7 +50,7 @@ module Extraction = struct
       Result.return (List.equal String.equal last segs)
     in
     let rec search x =
-      let error = Result.failf "File not found in dune workspace" in
+      let error = Result.failf "This is not a .ml file known by dune" in
       let default () = match x with
         | Atom _ -> error
         | List l ->
@@ -73,6 +73,7 @@ module Extraction = struct
     in search t
 
   let find_cmt_location ~report filename =
+    let report, oreport = report in
     let of_string x = Fpath.of_string x |> norm_error in
     let* filename = of_string filename in
     let* dune_root = find_dune_root () in
@@ -87,6 +88,7 @@ module Extraction = struct
     in
     let filename_from_root =
       Fpath.append relative_cwd filename |> Fpath.normalize in
+    oreport ("Describe", 0);
     let* description = call_describe () in
     let* found_cmt = parse_describe filename_from_root description in
     let* found_cmt = of_string found_cmt in
@@ -96,6 +98,7 @@ module Extraction = struct
       if Poly.(Sys.file_exists finals = `Yes) then  Result.return ()
       else
         let open Feather in
+        oreport ("Building", 0);
         let* relative_root = match Fpath.relativize ~root:cwd dune_root with
           | Some p -> Result.return p
           | None -> Result.failf "Invalid dune root prefix"
