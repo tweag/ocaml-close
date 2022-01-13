@@ -133,6 +133,7 @@ type args = {
 let analyse {conf_file; report} oreport filename =
   begin
     let conf = Conf.read_conf ?conf_file () in
+    let* _ = Typed.get_typed_tree ~report filename in
     let* summaries = get_summaries filename report oreport in
     let candidates = List.filter ~f:(Fn.non (apply_keep_rule conf)) summaries in
     Progress.interject_with (fun () ->
