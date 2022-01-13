@@ -112,14 +112,14 @@ module Progress_bar = struct
   let config = Config.(v ~persistent:false ())
   let bar1 ~total = Line.(list [ 
       const "Files";
-      bar ~style:`UTF8 ~width:(`Fixed 70) ~color:Terminal.Color.(hex "#FA0") total;
+      bar ~style:`UTF8 ~width:(`Fixed 60) ~color:Terminal.Color.(hex "#FA0") total;
       count_to total
     ])
   let bar2 = Line.(list [ 
       const "Opens";
-      bar ~style:`UTF8 ~width:(`Fixed 70) ~data:`Latest
+      using snd @@ bar ~style:`UTF8 ~width:(`Fixed 60) ~data:`Latest
         ~color:Terminal.Color.(hex "#5500FF") 100;
-      spinner ()
+      using fst string
     ])
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
@@ -134,7 +134,7 @@ let get_summaries filename report oreport =
     List.mapi ~f:(fun i x -> (i, x)) opens
     |> map_result ~f:(fun (i, x) ->
         (match report with
-         | `Bar -> oreport (100 * (i + 1) / total)
+         | `Bar -> oreport ("Analyzing", (100 * (i + 1) / total))
          | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
          | `None -> ());
         Merlin.uses_of_open filename x
@@ -149,7 +149,7 @@ type args = {
 
 let analyse {conf_file; report} oreport filename =
   begin
-    oreport 0;
+    oreport ("Fetching", 0);
     let conf = Conf.read_conf ?conf_file () in
     let* _ = Typed.Extraction.get_typed_tree ~report filename in
     let* summaries = get_summaries filename report oreport in
