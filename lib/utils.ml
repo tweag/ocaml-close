@@ -30,9 +30,6 @@ let find_file_s ?containing_folder name src =
   let* found = find_file ?containing_folder name srcf in
   Result.return (Fpath.to_string found)
 
-let pos_of_position posi =
-  Ppxlib.{line = posi.pos_lnum; col = posi.pos_cnum - posi.pos_bol}
-
 let string_of_pos pos = Printf.sprintf "%d:%d" pos.line pos.col
 
 let map_result ~f l = 
