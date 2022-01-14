@@ -36,8 +36,8 @@ let check_errors filename =
     in
     Result.failf "Merlin has errors. Here is the first one:\n%s\n" errors
 
-let uses_of_open filename module_expr =
-  let pos = pos_of_position Ppxlib.(module_expr.pmod_loc.loc_start) in
+let uses_of_open filename t =
+  let pos = Typed.Open_explore.get_position t in
   let command = `Open pos in
   let* answer = call_merlin ~filename ~command in
   Yojson.Safe.Util.to_list answer

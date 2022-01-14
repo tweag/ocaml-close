@@ -2,6 +2,9 @@ open Core
 open Utils
 
 module Extraction = struct
+
+  type t = Typedtree.structure
+
   let find_dune_root () = 
     let* src = Sys.getcwd () |> Fpath.of_string |> norm_error in
     let find_from src =
@@ -123,4 +126,66 @@ module Extraction = struct
     with Error (Not_a_typedtree err) | Failure err ->
       Result.failf "Parsing of the .cmt file failed: %s" err
 
+end
+
+module Open_explore = struct
+
+  type t = Typedtree.open_declaration
+
+  let iterator t f =
+    let open Typedtree in
+    let super = Tast_iterator.default_iterator in
+    let structure_item i s =
+      begin
+        match s.str_desc with
+        | Typedtree.Tstr_open o ->
+          (* Do not consider structured opens *)
+          if List.is_empty o.open_bound_items then f o
+        | _ -> ()
+      end; super.structure_item i s
+    in
+    let it = {super with structure_item} in
+    it.structure it t
+
+  let gather t =
+    let l = ref [] in
+    let f o = l := o :: !l in
+    iterator t f; !l
+
+  let get_position (t : t) =
+    let Warnings.{loc_start = p; _} = t.open_expr.mod_loc in
+    {line = p.pos_lnum; col = p.pos_cnum - p.pos_bol}
+
+  let get_path (t : t) =
+    match (t.open_expr).mod_desc with
+    | Typedtree.Tmod_ident (path, _) -> Result.return path
+    | _ -> Result.fail "This module is not a simple identifier"
+
+  let get_name (t : t) =
+    let* path = get_path t in
+    Result.return (Path.name path)
+
+  let strip_from_name (t : t) str =
+    let vsegs = String.split ~on:'.' str in
+    let* path = get_path t in
+    let* msegs = match Path.flatten path with
+      | `Ok (i, l) -> Result.return (Ident.name i :: l)
+      | `Contains_apply -> Result.fail "This module is not a simple identifier"
+    in
+    let rec strip mp vp = match mp, vp with
+      | m :: t1, v :: t2 when String.(m = v) -> strip t1 t2
+      | _ :: t1, _ -> strip t1 vp
+      | [], _ -> vp
+    in
+    strip msegs vsegs |> String.concat ~sep:"." |> Result.return
+
+
+(*
+  let investigate t =
+    let open Typedtree in
+    List.iter ~f:(fun x -> match x.open_expr.mod_desc with
+        | Tmod_ident (path, _) -> Stdio.printf "%s\n%!" (Path.name path)
+        | _ -> ()
+      ) (gather t)
+*)
 end

@@ -4,13 +4,6 @@ open Utils
 (* Possible TODO: use typerex-lint ? But it's outdated *)
 (* TODO: support for wildcard *)
 
-let infer_prefix file qualify =
-  let* unqualified = Syntactic.get_source_fragment file qualify.start qualify.finish in
-  Option.bind
-    (String.chop_suffix qualify.content ~suffix:unqualified)
-    ~f:(String.chop_suffix ~suffix:".")
-  |> Result.of_option ~error:"Couldn't chop prefix when inferring module name"
-
 type open_summary = {
   module_name : string;
   total : int;
@@ -28,41 +21,27 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
-let compute_summary file uses =
-  if List.is_empty uses then Result.return None
-  else
-    let* prefix, uses =
-      match infer_prefix file (List.hd_exn uses) with
-      | Ok prefix ->
-        let uses =
-          List.map ~f:(fun s -> s.content) uses
-          |> List.map ~f:(String.chop_prefix ~prefix:(prefix ^ "."))
-        in
-        let* uses =
-          if List.exists ~f:Option.is_none uses then
-            Result.failf "Couldn't chop inferred prefix on use"
-          else Result.return (List.filter_opt uses)
-        in
-        Result.return (prefix, uses)
-      | Error _ ->
-        let uses = List.map ~f:(fun s -> s.content) uses in
-        Result.return ("NOTINFERRED", uses)
-    in
-    let total = List.length uses in
-    let h = Hashtbl.create (module String) in
-    List.iter ~f:(Hashtbl.incr h) uses;
-    let groups = Hashtbl.length h in
-    let layer_only =
-      Hashtbl.keys h
-      |> List.for_all ~f:is_module_id
-    in
-    let imports_syntax = 
-      Hashtbl.keys h
-      |> List.exists ~f:is_operator_id
-    in
-    Result.return @@
-    Some {module_name = prefix; total;
-          groups; layer_only; imports_syntax}
+let compute_summary (t, uses) =
+  let* name = Typed.Open_explore.get_name t in
+  let use_names : string list = List.map uses ~f:(fun x ->
+      match Typed.Open_explore.strip_from_name t x.content with
+      | Ok x -> x
+      | Error _ -> assert false
+    ) in
+  let total = List.length uses in
+  let h = Hashtbl.create (module String) in
+  List.iter ~f:(Hashtbl.incr h) use_names;
+  let groups = Hashtbl.length h in
+  let layer_only =
+    Hashtbl.keys h
+    |> List.for_all ~f:is_module_id
+  in
+  let imports_syntax = 
+    Hashtbl.keys h
+    |> List.exists ~f:is_operator_id
+  in
+  Result.return {module_name = name; total;
+                 groups; layer_only; imports_syntax}
 
 let enact_decision filename sum =
   let open Conf in
@@ -125,11 +104,11 @@ module Progress_bar = struct
 end
 
 let get_summaries filename report oreport =
-  let file = Stdio.In_channel.read_lines filename in
   oreport ("Merlin", 0);
   let* () = Merlin.check_errors filename in
   if Poly.(report = `Text) then Stdio.printf "Merlin OK\n%!";
-  let* opens = Syntactic.get_opens filename in
+  let* t = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
+  let opens = Typed.Open_explore.gather t in
   let total = List.length opens in
   let* uses =
     List.mapi ~f:(fun i x -> (i, x)) opens
@@ -138,10 +117,10 @@ let get_summaries filename report oreport =
          | `Bar -> oreport ("Analyzing", (100 * (i + 1) / total))
          | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
          | `None -> ());
-        Merlin.uses_of_open filename x
+        let* uses = Merlin.uses_of_open filename x in
+        Result.return (x, uses)
       ) in
-  let* summaries = map_result ~f:(compute_summary file) uses in
-  List.filter_opt summaries |> Result.return
+  map_result ~f:compute_summary uses
 
 type args = {
   report : [`Bar | `Text | `None];
@@ -152,7 +131,6 @@ let analyse {conf_file; report} oreport filename =
   begin
     oreport ("Fetching", 0);
     let conf = Conf.read_conf ?conf_file () in
-    let* _ = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
     let* summaries = get_summaries filename report oreport in
     List.iter summaries ~f:(make_decision filename conf);
     Result.return ()
