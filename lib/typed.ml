@@ -2,7 +2,6 @@ open Core
 open Utils
 
 module Extraction = struct
-
   type t = Typedtree.structure
 
   let find_dune_root () = 
@@ -20,7 +19,7 @@ module Extraction = struct
       | Error _ -> src
     in Result.return (find_farthest first)
 
-  (* Cache it *)
+  (* Memoize it *)
   let call_describe =
     let cache = ref None in fun () ->
       match !cache with
@@ -178,14 +177,4 @@ module Open_explore = struct
       | [], _ -> vp
     in
     strip msegs vsegs |> String.concat ~sep:"." |> Result.return
-
-
-(*
-  let investigate t =
-    let open Typedtree in
-    List.iter ~f:(fun x -> match x.open_expr.mod_desc with
-        | Tmod_ident (path, _) -> Stdio.printf "%s\n%!" (Path.name path)
-        | _ -> ()
-      ) (gather t)
-*)
 end
