@@ -22,15 +22,7 @@ let is_operator_id id =
     ))
 
 let compute_summary (t, use_names) =
-  (* List.iter uses_typed ~f:(Stdio.printf "typed: %s\n"); *)
   let* name = Typed.Open_info.get_name t in
-  (*
-  let use_names : string list = List.map uses ~f:(fun x ->
-      match Typed.Open_info.strip_from_name t x.content with
-      | Ok x -> (* Stdio.printf "merlin: %s\n" x;*) x
-      | Error _ -> assert false
-    ) in
-     *)
   let total = List.length use_names in
   let h = Hashtbl.create (module String) in
   List.iter ~f:(Hashtbl.incr h) use_names;
@@ -108,11 +100,6 @@ module Progress_bar = struct
 end
 
 let get_summaries filename report oreport =
-  (*
-  oreport ("Merlin", 0);
-  let* () = Merlin.check_errors filename in
-  if Poly.(report = `Text) then Stdio.printf "Merlin OK\n%!";
-     *)
   let* t = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
   let opens = Typed.Open_info.gather t in
   let total = List.length opens in
