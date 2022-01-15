@@ -82,15 +82,16 @@ module Extraction = struct
     let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
     let cwd = Fpath.to_dir_path cwd in
     let* relative_cwd =
-      if Poly.(params.rkind = `Text) then
-        Stdio.printf "Dune root: %s\n" (Fpath.to_string dune_root);
+      params.log.debug (
+        Printf.sprintf "Dune root: %s\n" (Fpath.to_string dune_root)
+      );
       match Fpath.relativize ~root:dune_root cwd with
       | Some p -> Result.return p
       | None -> Result.failf "Invalid dune root prefix"
     in
     let filename_from_root =
       Fpath.append relative_cwd filename |> Fpath.normalize in
-    params.oreport ("Describe", 0);
+    params.log.change "Describe";
     let* description = call_describe () in
     let* found_cmt = parse_describe filename_from_root description in
     let* found_cmt = of_string found_cmt in
@@ -101,7 +102,7 @@ module Extraction = struct
       else if params.skip_absent then Result.failf "Not built, skipping."
       else
         let open Feather in
-        params.oreport ("Building", 0);
+        params.log.change "Building";
         let* relative_root = match Fpath.relativize ~root:cwd dune_root with
           | Some p -> Result.return p
           | None -> Result.failf "Invalid dune root prefix"
