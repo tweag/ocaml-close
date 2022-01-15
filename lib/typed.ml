@@ -74,10 +74,10 @@ module Extraction = struct
       | _ -> default ()
     in search t
 
-  let find_cmt_location ~report filename =
+  let of_string x = Fpath.of_string x |> norm_error
+
+  let find_cmt_location ~skip_absent ~report filename =
     let report, oreport = report in
-    let of_string x = Fpath.of_string x |> norm_error in
-    let* filename = of_string filename in
     let* dune_root = find_dune_root () in
     let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
     let cwd = Fpath.to_dir_path cwd in
@@ -98,6 +98,7 @@ module Extraction = struct
     let finals = Fpath.to_string final in
     let* () =
       if Poly.(Sys.file_exists finals = `Yes) then  Result.return ()
+      else if skip_absent then Result.failf "Not built, skipping."
       else
         let open Feather in
         oreport ("Building", 0);
@@ -115,11 +116,16 @@ module Extraction = struct
     in
     Result.return finals
 
-  let get_typed_tree ~report filename =
-    let* path = find_cmt_location ~report filename in
+  let get_typed_tree ~skip_absent ~report filename =
+    let* fpath = of_string filename in
+    let* cmt_path = match Fpath.get_ext fpath with
+      | ".ml" -> find_cmt_location ~skip_absent ~report fpath
+      | ".cmt" -> Result.return filename
+      | _ -> Result.failf "%s is not a .ml or .cmt file" filename
+    in
     let open Cmt_format in
     try
-      match (read_cmt path).cmt_annots with
+      match (read_cmt cmt_path).cmt_annots with
       | Implementation s -> Result.return s
       | _ -> Result.failf ".cmt file does not contain an implementation"
     with Error (Not_a_typedtree err) | Failure err ->

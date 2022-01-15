@@ -1,7 +1,9 @@
 open Cmdliner
 
 let filenames =
-  let doc = "Paths to the OCaml sources to read. Only .ml files." in
+  let doc = "Paths to the OCaml sources to read. Either .ml or .cmt files. If
+  .ml files are given, dune will be used to locate their .cmt counterpart and
+  build it if it doesn't exist." in
   Arg.(non_empty & pos_all file [] & info [] ~docv:"FILES" ~doc)
 
 let report =
@@ -30,6 +32,12 @@ let conf_file =
   in
   Arg.(value & opt (some file) None & info ~env ["c"; "conf"] ~doc)
 
+
+let skip_absent =
+  let doc = "Do not try to build a .cmt file from a .ml file if it does not
+  exist, and skip the file instead." in
+  Arg.(value & flag & info ~doc ["skip-absent"])
+
 let info =
   let doc = "analyse a program to detect opens that make it less legible" in
   let man = [
@@ -42,8 +50,9 @@ let info =
 let close_t =
   let open Term in
   let open Closelib.Close in
-  let pack_args report conf_file = {report; conf_file} in
-  let args = const pack_args $ report $ conf_file in
+  let pack_args report conf_file skip_absent =
+    {report; conf_file; skip_absent} in
+  let args = const pack_args $ report $ conf_file $ skip_absent in
   let applied = const execute $ args $ filenames in
   term_result applied
 

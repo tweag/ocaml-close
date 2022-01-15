@@ -1,6 +1,7 @@
 type args = {
   report : [`Bar | `Text | `None];
   conf_file : string option;
+  skip_absent : bool;
 }
 
 val execute : args -> string list -> (unit, [`Msg of string]) result
