@@ -11,7 +11,7 @@ type open_summary = {
   groups : int;
   layer_only : bool;
   imports_syntax : bool;
-}(*[@@deriving show]*)
+}[@@deriving show]
 
 let is_module_id id = Char.is_uppercase id.[0]
 
@@ -114,7 +114,11 @@ let analyse params filename =
   begin
     params.log.change "Fetching";
     let* summaries = get_summaries filename params in
-    List.iter summaries ~f:(make_decision filename params.conf);
+    let f = match params.behavior with
+      | `Suggest -> make_decision filename params.conf
+      | `List_only -> fun x -> Stdio.printf "%s\n" (show_open_summary x)
+    in
+    List.iter summaries ~f;
     Result.return ()
   end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
 

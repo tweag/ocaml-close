@@ -4,7 +4,8 @@ type args = {
   report : [`Bar | `Text | `None];
   conf_file : string option;
   skip_absent : bool;
-  silence_errors : bool
+  silence_errors : bool;
+  behavior : [`Suggest | `List_only];
 }
 
 let (let*) = Stdlib.Result.bind
