@@ -192,6 +192,7 @@ module Open_uses = struct
   open Types
 
   (* TODO actually only visit the scope of the open *)
+  (* TODO missing module types, module names *)
 
   let f_if_constr f t = match t.desc with
     | Tconstr (path, _, _) -> f path
