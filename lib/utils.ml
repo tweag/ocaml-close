@@ -6,6 +6,7 @@ type args = {
   skip_absent : bool;
   silence_errors : bool;
   behavior : [`Suggest | `List_only];
+  verbose : bool;
 }
 
 let (let*) = Stdlib.Result.bind
