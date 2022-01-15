@@ -119,7 +119,12 @@ module Extraction = struct
   let get_typed_tree ~skip_absent ~report filename =
     let* fpath = of_string filename in
     let* cmt_path = match Fpath.get_ext fpath with
-      | ".ml" -> find_cmt_location ~skip_absent ~report fpath
+      | ".ml" ->
+        let with_cmt = Fpath.(set_ext ".cmt" fpath |> to_string) in
+        begin match Sys.file_exists with_cmt with
+          | `Yes -> Result.return with_cmt
+          | _ -> find_cmt_location ~skip_absent ~report fpath
+        end
       | ".cmt" -> Result.return filename
       | _ -> Result.failf "%s is not a .ml or .cmt file" filename
     in
