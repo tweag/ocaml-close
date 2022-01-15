@@ -11,10 +11,14 @@ module Extraction : sig
       returns it. *)
 end
 
-module Open_explore : sig
+module Open_info : sig
   type t
   val gather : Extraction.t -> t list
   val get_position : t -> Utils.pos
   val get_name : t -> (string, string) result
   val strip_from_name : t -> string -> (string, string) result
+end
+
+module Open_uses : sig
+  val compute : Extraction.t -> Open_info.t -> (string list, string) result
 end

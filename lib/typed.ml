@@ -127,7 +127,12 @@ module Extraction = struct
 
 end
 
-module Open_explore = struct
+let segs_of_path path = 
+  match Path.flatten path with
+  | `Ok (i, l) -> Result.return (Ident.name i :: l)
+  | `Contains_apply -> Result.fail "This module is not a simple identifier"
+
+module Open_info = struct
 
   type t = Typedtree.open_declaration
 
@@ -167,14 +172,78 @@ module Open_explore = struct
   let strip_from_name (t : t) str =
     let vsegs = String.split ~on:'.' str in
     let* path = get_path t in
-    let* msegs = match Path.flatten path with
-      | `Ok (i, l) -> Result.return (Ident.name i :: l)
-      | `Contains_apply -> Result.fail "This module is not a simple identifier"
-    in
+    let* msegs = segs_of_path path in
     let rec strip mp vp = match mp, vp with
       | m :: t1, v :: t2 when String.(m = v) -> strip t1 t2
       | _ :: t1, _ -> strip t1 vp
       | [], _ -> vp
     in
     strip msegs vsegs |> String.concat ~sep:"." |> Result.return
+end
+
+module Open_uses = struct
+  open Typedtree
+  open Types
+
+  (* TODO actually only visit the scope of the open *)
+  (* TODO missing record types (fields) *)
+
+  let check_constructor f desc =
+    (* TODO replace last element of path by constructor name ? *)
+    let typ = desc.cstr_res in
+    begin match typ.desc with
+      | Tconstr (path, _, _) -> f path
+      | _ -> ()
+    end
+
+  let path_iterator t f =
+    let super = Tast_iterator.default_iterator in
+    let pat (type k) it (p : k general_pattern) =
+      List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
+          | Tpat_type (path, _)
+          | Tpat_open (path, _, _) -> f path
+          | _ -> ()
+        );
+      begin match p.pat_desc with
+        | Tpat_construct (_, cons_desc, _) -> check_constructor f cons_desc
+        | _ -> ()
+      end; super.pat it p
+    in
+    let expr it e =
+      begin match e.exp_desc with
+        | Texp_instvar (path1, path2, _) -> f path1; f path2
+        | Texp_ident (path, _, _)
+        | Texp_new (path, _, _) 
+        | Texp_override (path, _)
+        | Texp_extension_constructor (_, path) -> f path
+        | Texp_letop {let_; _} -> f let_.bop_op_path
+        | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
+        | _ -> ()
+      end; super.expr it e
+    in
+    let it = {super with expr; pat} in
+    it.structure it t
+
+  let compute t o =
+    let* opath = Open_info.get_path o in
+    let rec matches os vs = match os, vs with
+      | o :: t1, v :: t2 when String.(o = v) -> matches t1 t2
+      | [], [] -> None
+      | [], _ -> Some vs
+      | _, _ -> None
+    in
+    let uses = ref [] in
+    let f vpath = 
+      match begin
+        let* osegs = segs_of_path opath in
+        let* vsegs = segs_of_path vpath in
+        match matches osegs vsegs with
+        | Some suffix ->
+          let suffix = String.concat ~sep:"." suffix in
+          Result.return (uses := suffix :: !uses)
+        | None -> Result.return ()
+      end with Ok () -> () | Error s -> failwith s
+    in
+    try path_iterator t f; Result.return (!uses)
+    with Failure e -> Result.fail e
 end

@@ -21,11 +21,13 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
-let compute_summary (t, uses) =
-  let* name = Typed.Open_explore.get_name t in
+let compute_summary tree (t, uses) =
+  let* _uses_typed = Typed.Open_uses.compute tree t in
+  (* List.iter uses_typed ~f:(Stdio.printf "typed: %s\n"); *)
+  let* name = Typed.Open_info.get_name t in
   let use_names : string list = List.map uses ~f:(fun x ->
-      match Typed.Open_explore.strip_from_name t x.content with
-      | Ok x -> x
+      match Typed.Open_info.strip_from_name t x.content with
+      | Ok x -> (* Stdio.printf "merlin: %s\n" x;*) x
       | Error _ -> assert false
     ) in
   let total = List.length uses in
@@ -108,7 +110,7 @@ let get_summaries filename report oreport =
   let* () = Merlin.check_errors filename in
   if Poly.(report = `Text) then Stdio.printf "Merlin OK\n%!";
   let* t = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
-  let opens = Typed.Open_explore.gather t in
+  let opens = Typed.Open_info.gather t in
   let total = List.length opens in
   let* uses =
     List.mapi ~f:(fun i x -> (i, x)) opens
@@ -120,7 +122,7 @@ let get_summaries filename report oreport =
         let* uses = Merlin.uses_of_open filename x in
         Result.return (x, uses)
       ) in
-  map_result ~f:compute_summary uses
+  map_result ~f:(compute_summary t) uses
 
 type args = {
   report : [`Bar | `Text | `None];
