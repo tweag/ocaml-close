@@ -121,9 +121,10 @@ type args = {
   report : [`Bar | `Text | `None];
   conf_file : string option;
   skip_absent : bool;
+  silence_errors : bool
 }
 
-let analyse {conf_file; report; skip_absent} oreport filename =
+let analyse {conf_file; report; skip_absent; _} oreport filename =
   begin
     oreport ("Fetching", 0);
     let conf = Conf.read_conf ?conf_file () in
@@ -146,12 +147,16 @@ let execute args filenames =
     List.mapi ~f:process_one filenames
     |> Result.combine_errors
     |> Result.map_error ~f:(fun err_list ->
-        let errors = String.concat ~sep:"\n" err_list in
-        Printf.sprintf "There were errors during processing:\n%s" errors
+          let errors = String.concat ~sep:"\n" err_list in
+          Printf.sprintf "There were errors during processing:\n%s" errors
       )
     |> Result.map ~f:ignore
     |> filter_errors
   in
-  if Poly.(args.report = `Bar) then
-    Progress.with_reporters ~config:Progress_bar.config bar go
-  else go ignore ignore
+  match begin
+    if Poly.(args.report = `Bar) then
+      Progress.with_reporters ~config:Progress_bar.config bar go
+    else go ignore ignore
+  end with
+  | Error _ when args.silence_errors -> Ok ()
+  | s -> s
