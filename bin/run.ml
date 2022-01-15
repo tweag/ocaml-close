@@ -52,12 +52,12 @@ let info =
 
 let close_t =
   let open Term in
-  let open Closelib.Close in
+  let open Closelib in
   let pack_args report conf_file skip_absent silence_errors =
-    {report; conf_file; skip_absent; silence_errors} in
+    Utils.{report; conf_file; skip_absent; silence_errors} in
   let args = const pack_args $ report $ conf_file $ skip_absent
              $ silence_errors in
-  let applied = const execute $ args $ filenames in
+  let applied = const Close.execute $ args $ filenames in
   term_result applied
 
 let () = Term.eval (close_t, info) |> Term.exit

@@ -2,10 +2,7 @@ module Extraction : sig
 
   type t
 
-  val get_typed_tree :
-    skip_absent:bool
-    -> report:([`Text | `Bar | `None]* (string * int -> unit))
-    -> string -> (t, string) result
+  val get_typed_tree : params:Params.t -> string -> (t, string) result
   (** [get_typed_tree ~report filename] locates the .cmt file corresponding to
       the given .ml by using the `dune describe` command, building the .cmt
       file in the process if it does not exist.

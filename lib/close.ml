@@ -1,5 +1,6 @@
 open Base
 open Utils
+open Params
 
 (* Possible TODO: use typerex-lint ? But it's outdated *)
 (* TODO: support for wildcard *)
@@ -99,15 +100,14 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
-let get_summaries filename skip_absent report oreport =
-  let* t = Typed.Extraction.get_typed_tree
-      ~skip_absent ~report:(report, oreport) filename in
+let get_summaries filename params =
+  let* t = Typed.Extraction.get_typed_tree ~params filename in
   let opens = Typed.Open_info.gather t in
   let total = List.length opens in
   List.mapi ~f:(fun i x -> (i, x)) opens
   |> List.map ~f:(fun (i, x) ->
-      (match report with
-       | `Bar -> oreport ("Analyzing", (100 * (i + 1) / total))
+      (match params.rkind with
+       | `Bar -> params.oreport ("Analyzing", (100 * (i + 1) / total))
        | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
        | `None -> ());
       let* use_names = Typed.Open_uses.compute t x in
@@ -117,19 +117,11 @@ let get_summaries filename skip_absent report oreport =
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
   |> Result.return
 
-type args = {
-  report : [`Bar | `Text | `None];
-  conf_file : string option;
-  skip_absent : bool;
-  silence_errors : bool
-}
-
-let analyse {conf_file; report; skip_absent; _} oreport filename =
+let analyse params filename =
   begin
-    oreport ("Fetching", 0);
-    let conf = Conf.read_conf ?conf_file () in
-    let* summaries = get_summaries filename skip_absent report oreport in
-    List.iter summaries ~f:(make_decision filename conf);
+    params.oreport ("Fetching", 0);
+    let* summaries = get_summaries filename params in
+    List.iter summaries ~f:(make_decision filename params.conf);
     Result.return ()
   end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
 
@@ -137,12 +129,13 @@ let execute args filenames =
   let total = List.length filenames in
   let bar = Progress_bar.b total in
   let go oreport freport =
+    let params = Params.of_args args (oreport, freport) in
     let process_one n filename =
       (match args.report with
        | `Bar -> freport 1
        | `Text -> Stdio.printf "Processing %s (%d/%d)\n%!" filename (n + 1) total
        | `None -> ());
-      analyse args oreport filename
+      analyse params filename
     in
     List.mapi ~f:process_one filenames
     |> Result.combine_errors

@@ -1,4 +1,5 @@
 open Core
+open Params
 open Utils
 
 module Extraction = struct
@@ -76,13 +77,12 @@ module Extraction = struct
 
   let of_string x = Fpath.of_string x |> norm_error
 
-  let find_cmt_location ~skip_absent ~report filename =
-    let report, oreport = report in
+  let find_cmt_location ~params filename =
     let* dune_root = find_dune_root () in
     let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
     let cwd = Fpath.to_dir_path cwd in
     let* relative_cwd =
-      if Poly.(report = `Text) then
+      if Poly.(params.rkind = `Text) then
         Stdio.printf "Dune root: %s\n" (Fpath.to_string dune_root);
       match Fpath.relativize ~root:dune_root cwd with
       | Some p -> Result.return p
@@ -90,7 +90,7 @@ module Extraction = struct
     in
     let filename_from_root =
       Fpath.append relative_cwd filename |> Fpath.normalize in
-    oreport ("Describe", 0);
+    params.oreport ("Describe", 0);
     let* description = call_describe () in
     let* found_cmt = parse_describe filename_from_root description in
     let* found_cmt = of_string found_cmt in
@@ -98,10 +98,10 @@ module Extraction = struct
     let finals = Fpath.to_string final in
     let* () =
       if Poly.(Sys.file_exists finals = `Yes) then  Result.return ()
-      else if skip_absent then Result.failf "Not built, skipping."
+      else if params.skip_absent then Result.failf "Not built, skipping."
       else
         let open Feather in
-        oreport ("Building", 0);
+        params.oreport ("Building", 0);
         let* relative_root = match Fpath.relativize ~root:cwd dune_root with
           | Some p -> Result.return p
           | None -> Result.failf "Invalid dune root prefix"
@@ -116,14 +116,14 @@ module Extraction = struct
     in
     Result.return finals
 
-  let get_typed_tree ~skip_absent ~report filename =
+  let get_typed_tree ~params filename =
     let* fpath = of_string filename in
     let* cmt_path = match Fpath.get_ext fpath with
       | ".ml" ->
         let with_cmt = Fpath.(set_ext ".cmt" fpath |> to_string) in
         begin match Sys.file_exists with_cmt with
           | `Yes -> Result.return with_cmt
-          | _ -> find_cmt_location ~skip_absent ~report fpath
+          | _ -> find_cmt_location ~params fpath
         end
       | ".cmt" -> Result.return filename
       | _ -> Result.failf "%s is not a .ml or .cmt file" filename
