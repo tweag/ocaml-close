@@ -32,11 +32,14 @@ let conf_file =
   in
   Arg.(value & opt (some file) None & info ~env ["c"; "conf"] ~doc)
 
-
 let skip_absent =
   let doc = "Do not try to build a .cmt file from a .ml file if it does not
   exist, and skip the file instead." in
   Arg.(value & flag & info ~doc ["skip-absent"])
+
+let silence_errors =
+  let doc = "Silence any error encountered during the analysis." in
+  Arg.(value & flag & info ~doc ["silence-errors"])
 
 let info =
   let doc = "analyse a program to detect opens that make it less legible" in
@@ -50,9 +53,10 @@ let info =
 let close_t =
   let open Term in
   let open Closelib.Close in
-  let pack_args report conf_file skip_absent =
-    {report; conf_file; skip_absent} in
-  let args = const pack_args $ report $ conf_file $ skip_absent in
+  let pack_args report conf_file skip_absent silence_errors =
+    {report; conf_file; skip_absent; silence_errors} in
+  let args = const pack_args $ report $ conf_file $ skip_absent
+             $ silence_errors in
   let applied = const execute $ args $ filenames in
   term_result applied
 
