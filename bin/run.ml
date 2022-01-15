@@ -9,20 +9,34 @@ let filenames =
 let report =
   let parse =
     let open Base in function
-    | "bar" -> Result.return `Bar
-    | "text" -> Result.return `Text
+    | "bar" -> Result.return `Bar | "text" -> Result.return `Text
     | "none" -> Result.return `None
     | _ -> Result.fail (`Msg "must be one of 'bar', 'text' or 'none'.")
   in
   let print fmt x = let text = match x with
-      | `Bar -> "bar"
-      | `Text -> "text"
-      | `None -> "none"
+      | `Bar -> "bar" | `Text -> "text" | `None -> "none"
     in Format.pp_print_string fmt text
   in
   let doc = "Report progress during processing.\
              The value $(docv) must be one of `bar', `text' or `none'" in
   Arg.(value & opt (conv (parse, print)) `Bar & info ["r"; "report"] ~doc)
+
+let behavior =
+  let parse =
+    let open Base in function
+      | "suggest" -> Result.return `Suggest
+      | "list-only" -> Result.return `List_only
+      | _ -> Result.fail (`Msg "must be one of 'suggest' or 'list-only'.")
+  in
+  let print fmt x = let text = match x with
+      | `Suggest -> "suggest" | `List_only -> "list-only"
+    in Format.pp_print_string fmt text
+  in
+  let doc = "Defines behavior of the program. 'suggest' lists modification
+  suggestions, while 'list-only' makes the program print a summary of every
+  found open, mainly for debugging purposes."
+  in
+  Arg.(value & opt (conv (parse, print)) `Suggest & info ["b"; "behavior"] ~doc)
 
 let conf_file =
   let doc = "Force the usage of a configuration file." in
@@ -53,10 +67,12 @@ let info =
 let close_t =
   let open Term in
   let open Closelib in
-  let pack_args report conf_file skip_absent silence_errors =
-    Utils.{report; conf_file; skip_absent; silence_errors} in
+  let pack_args
+      report conf_file skip_absent
+      silence_errors behavior =
+    Utils.{report; conf_file; skip_absent; silence_errors; behavior} in
   let args = const pack_args $ report $ conf_file $ skip_absent
-             $ silence_errors in
+             $ silence_errors $ behavior in
   let applied = const Close.execute $ args $ filenames in
   term_result applied
 

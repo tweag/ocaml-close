@@ -83,7 +83,7 @@ module Extraction = struct
     let cwd = Fpath.to_dir_path cwd in
     let* relative_cwd =
       params.log.debug (
-        Printf.sprintf "Dune root: %s\n" (Fpath.to_string dune_root)
+        Printf.sprintf "Dune root: %s" (Fpath.to_string dune_root)
       );
       match Fpath.relativize ~root:dune_root cwd with
       | Some p -> Result.return p
