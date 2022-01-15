@@ -92,10 +92,8 @@ module Progress_bar = struct
       count_to total
     ])
   let bar2 = Line.(list [ 
-      const "Opens";
-      using snd @@ bar ~style:`UTF8 ~width:(`Fixed 60) ~data:`Latest
-        ~color:Terminal.Color.(hex "#5500FF") 100;
-      using fst string
+      spinner ();
+      string
     ])
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
@@ -103,13 +101,8 @@ end
 let get_summaries filename params =
   let* t = Typed.Extraction.get_typed_tree ~params filename in
   let opens = Typed.Open_info.gather t in
-  let total = List.length opens in
-  List.mapi ~f:(fun i x -> (i, x)) opens
-  |> List.map ~f:(fun (i, x) ->
-      (match params.rkind with
-       | `Bar -> params.oreport ("Analyzing", (100 * (i + 1) / total))
-       | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
-       | `None -> ());
+  List.map opens ~f:(fun x ->
+      params.log.change "Analyzing";
       let* use_names = Typed.Open_uses.compute t x in
       compute_summary (x, use_names)
     )
@@ -119,7 +112,7 @@ let get_summaries filename params =
 
 let analyse params filename =
   begin
-    params.oreport ("Fetching", 0);
+    params.log.change "Fetching";
     let* summaries = get_summaries filename params in
     List.iter summaries ~f:(make_decision filename params.conf);
     Result.return ()
@@ -129,19 +122,16 @@ let execute args filenames =
   let total = List.length filenames in
   let bar = Progress_bar.b total in
   let go oreport freport =
-    let params = Params.of_args args (oreport, freport) in
-    let process_one n filename =
-      (match args.report with
-       | `Bar -> freport 1
-       | `Text -> Stdio.printf "Processing %s (%d/%d)\n%!" filename (n + 1) total
-       | `None -> ());
-      analyse params filename
-    in
-    List.mapi ~f:process_one filenames
+    let params = Params.of_args args ((oreport, freport), total) in
+    params.log.change "Starting";
+    List.map filenames ~f:(fun filename ->
+        params.log.new_file filename;
+        analyse params filename
+      )
     |> Result.combine_errors
     |> Result.map_error ~f:(fun err_list ->
-          let errors = String.concat ~sep:"\n" err_list in
-          Printf.sprintf "There were errors during processing:\n%s" errors
+        let errors = String.concat ~sep:"\n" err_list in
+        Printf.sprintf "There were errors during processing:\n%s" errors
       )
     |> Result.map ~f:ignore
     |> filter_errors
