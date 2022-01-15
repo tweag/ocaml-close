@@ -2,6 +2,11 @@ open Core
 open Params
 open Utils
 
+open Bigarray
+
+module A = Array0
+
+
 module Extraction = struct
   type t = Typedtree.structure
 
@@ -202,7 +207,6 @@ module Open_uses = struct
   open Types
 
   (* TODO actually only visit the scope of the open *)
-  (* TODO missing module types, module names *)
 
   let f_if_constr f t = match t.desc with
     | Tconstr (path, _, _) -> f path
@@ -216,6 +220,7 @@ module Open_uses = struct
 
   let path_iterator t f =
     let super = Tast_iterator.default_iterator in
+
     let pat (type k) it (p : k general_pattern) =
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
           | Tpat_type (path, _)
@@ -245,8 +250,21 @@ module Open_uses = struct
         | _ -> ()
       end; super.expr it e
     in
-    let it = {super with expr; pat} in
+    let module_expr it m =
+      begin match m.mod_desc with
+        | Tmod_ident (path, _) -> f path
+        | _ -> ()
+      end; super.module_expr it m
+    in
+    let module_type it m =
+      begin match m.mty_desc with
+        | Tmty_ident (path, _) -> f path
+        | _ -> ()
+      end; super.module_type it m
+    in
+    let it = {super with expr; pat; module_expr; module_type} in
     it.structure it t
+
 
   let compute t o =
     let* opath = Open_info.get_path o in
