@@ -123,13 +123,17 @@ module Extraction = struct
       | ".cmt" -> Result.return filename
       | _ -> Result.failf "%s is not a .ml or .cmt file" filename
     in
+    let parse_error msg = Result.failf "Parsing of the .cmt failed: %s" msg in
     let open Cmt_format in
     try
       match (read_cmt cmt_path).cmt_annots with
       | Implementation s -> Result.return s
       | _ -> Result.failf ".cmt file does not contain an implementation"
-    with Error (Not_a_typedtree err) | Failure err ->
-      Result.failf "Parsing of the .cmt file failed: %s" err
+    with
+    | Cmi_format.Error err -> 
+      parse_error @@ Format.asprintf "%a" Cmi_format.report_error err
+    | Error (Not_a_typedtree err)
+    | Failure err -> parse_error err
 
 end
 
