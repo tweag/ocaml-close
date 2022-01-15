@@ -1,5 +1,12 @@
 open Core
 
+type args = {
+  report : [`Bar | `Text | `None];
+  conf_file : string option;
+  skip_absent : bool;
+  silence_errors : bool
+}
+
 let (let*) = Stdlib.Result.bind
 let filter_errors = Result.map_error ~f:(fun m -> `Msg m)
 let norm_error = Result.map_error ~f:(fun (`Msg m) -> m)
