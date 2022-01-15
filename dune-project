@@ -15,7 +15,7 @@
   (depends
     (ocaml (= 4.11.2))
     core
-    feather
+    (feather (>= 0.3.0))
     sexplib
     ppx_deriving
     ppx_sexp_conv
