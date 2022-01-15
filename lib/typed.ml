@@ -106,14 +106,14 @@ module Extraction = struct
           | None -> Result.failf "Invalid dune root prefix"
         in
         let full_path = Fpath.(append relative_root found_cmt |> normalize) in
-        let err, status = process "dune" ["build"; Fpath.to_string full_path] 
-                          |> collect stderr_and_status in
+        let {status; _} =
+          process "dune"
+            ["build"; "--cache=enabled"; Fpath.to_string full_path] 
+          |> collect everything in
         if status = 0 then Result.return ()
-        else Result.failf "Could not build cmt: %s\n" err
+        else Result.failf "Could not build the .cmt file!\n"
     in
     Result.return finals
-
-  (** TODO: Call describe only once when handling multiple files *)
 
   let get_typed_tree ~report filename =
     let* path = find_cmt_location ~report filename in
@@ -186,15 +186,16 @@ module Open_uses = struct
   open Types
 
   (* TODO actually only visit the scope of the open *)
-  (* TODO missing record types (fields) *)
 
-  let check_constructor f desc =
-    (* TODO replace last element of path by constructor name ? *)
-    let typ = desc.cstr_res in
-    begin match typ.desc with
-      | Tconstr (path, _, _) -> f path
-      | _ -> ()
-    end
+  let f_if_constr f t = match t.desc with
+    | Tconstr (path, _, _) -> f path
+    | _ -> ()
+
+  (* TODO replace last element of path by constructor name ? *)
+  let check_constructor f desc = f_if_constr f desc.cstr_res
+
+  (* TODO idem ? *)
+  let check_label f desc = f_if_constr f desc.lbl_res
 
   let path_iterator t f =
     let super = Tast_iterator.default_iterator in
@@ -206,6 +207,8 @@ module Open_uses = struct
         );
       begin match p.pat_desc with
         | Tpat_construct (_, cons_desc, _) -> check_constructor f cons_desc
+        | Tpat_record (fields, _) ->
+          List.iter fields ~f:(fun (_, lab_desc, _) -> check_label f lab_desc)
         | _ -> ()
       end; super.pat it p
     in
@@ -218,6 +221,10 @@ module Open_uses = struct
         | Texp_extension_constructor (_, path) -> f path
         | Texp_letop {let_; _} -> f let_.bop_op_path
         | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
+        | Texp_field (_, _, lab_desc)
+        | Texp_setfield (_, _, lab_desc, _) -> check_label f lab_desc
+        | Texp_record {fields; _} ->
+          Array.iter fields ~f:(fun (lab_desc, _) -> check_label f lab_desc)
         | _ -> ()
       end; super.expr it e
     in
@@ -234,7 +241,7 @@ module Open_uses = struct
     in
     let uses = ref [] in
     let f vpath = 
-      match begin
+      begin
         let* osegs = segs_of_path opath in
         let* vsegs = segs_of_path vpath in
         match matches osegs vsegs with
@@ -242,7 +249,7 @@ module Open_uses = struct
           let suffix = String.concat ~sep:"." suffix in
           Result.return (uses := suffix :: !uses)
         | None -> Result.return ()
-      end with Ok () -> () | Error s -> failwith s
+      end |> ignore (* Silence individual errors, no need to stop everything *)
     in
     try path_iterator t f; Result.return (!uses)
     with Failure e -> Result.fail e

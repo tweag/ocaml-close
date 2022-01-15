@@ -10,7 +10,7 @@ type open_summary = {
   groups : int;
   layer_only : bool;
   imports_syntax : bool;
-}
+}(*[@@deriving show]*)
 
 let is_module_id id = Char.is_uppercase id.[0]
 
@@ -21,16 +21,17 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
-let compute_summary tree (t, uses) =
-  let* _uses_typed = Typed.Open_uses.compute tree t in
+let compute_summary (t, use_names) =
   (* List.iter uses_typed ~f:(Stdio.printf "typed: %s\n"); *)
   let* name = Typed.Open_info.get_name t in
+  (*
   let use_names : string list = List.map uses ~f:(fun x ->
       match Typed.Open_info.strip_from_name t x.content with
       | Ok x -> (* Stdio.printf "merlin: %s\n" x;*) x
       | Error _ -> assert false
     ) in
-  let total = List.length uses in
+     *)
+  let total = List.length use_names in
   let h = Hashtbl.create (module String) in
   List.iter ~f:(Hashtbl.incr h) use_names;
   let groups = Hashtbl.length h in
@@ -76,6 +77,7 @@ let apply_rule rule sum =
   in apply rule
 
 let make_decision filename conf sum =
+  (*Stdio.printf "%s\n" (show_open_summary sum);*)
   let open Conf in
   let answers =
     List.map ~f:(fun (x, rule) -> (x, apply_rule rule sum)) conf.rules
@@ -106,23 +108,26 @@ module Progress_bar = struct
 end
 
 let get_summaries filename report oreport =
+  (*
   oreport ("Merlin", 0);
   let* () = Merlin.check_errors filename in
   if Poly.(report = `Text) then Stdio.printf "Merlin OK\n%!";
+     *)
   let* t = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
   let opens = Typed.Open_info.gather t in
   let total = List.length opens in
-  let* uses =
-    List.mapi ~f:(fun i x -> (i, x)) opens
-    |> map_result ~f:(fun (i, x) ->
-        (match report with
-         | `Bar -> oreport ("Analyzing", (100 * (i + 1) / total))
-         | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
-         | `None -> ());
-        let* uses = Merlin.uses_of_open filename x in
-        Result.return (x, uses)
-      ) in
-  map_result ~f:(compute_summary t) uses
+  List.mapi ~f:(fun i x -> (i, x)) opens
+  |> List.map ~f:(fun (i, x) ->
+      (match report with
+       | `Bar -> oreport ("Analyzing", (100 * (i + 1) / total))
+       | `Text -> Stdio.printf "%d/%d\n%!" (i + 1) total
+       | `None -> ());
+      let* use_names = Typed.Open_uses.compute t x in
+      compute_summary (x, use_names)
+    )
+  (* Filter out failing opens *)
+  |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
+  |> Result.return
 
 type args = {
   report : [`Bar | `Text | `None];
