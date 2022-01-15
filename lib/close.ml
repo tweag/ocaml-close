@@ -99,8 +99,9 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
-let get_summaries filename report oreport =
-  let* t = Typed.Extraction.get_typed_tree ~report:(report, oreport) filename in
+let get_summaries filename skip_absent report oreport =
+  let* t = Typed.Extraction.get_typed_tree
+      ~skip_absent ~report:(report, oreport) filename in
   let opens = Typed.Open_info.gather t in
   let total = List.length opens in
   List.mapi ~f:(fun i x -> (i, x)) opens
@@ -119,13 +120,14 @@ let get_summaries filename report oreport =
 type args = {
   report : [`Bar | `Text | `None];
   conf_file : string option;
+  skip_absent : bool;
 }
 
-let analyse {conf_file; report} oreport filename =
+let analyse {conf_file; report; skip_absent} oreport filename =
   begin
     oreport ("Fetching", 0);
     let conf = Conf.read_conf ?conf_file () in
-    let* summaries = get_summaries filename report oreport in
+    let* summaries = get_summaries filename skip_absent report oreport in
     List.iter summaries ~f:(make_decision filename conf);
     Result.return ()
   end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
