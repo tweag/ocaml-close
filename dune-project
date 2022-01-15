@@ -13,14 +13,12 @@
   (synopsis "Kill 'em open")
   (description "Kill 'm open")
   (depends
+    (ocaml (= 4.11.2))
     core
     feather
-    ppxlib
-    yojson
     sexplib
     ppx_deriving
     ppx_sexp_conv
-    ppx_deriving_yojson
     csexp
     stdio
     cmdliner

@@ -1,13 +1,5 @@
 open Core
 
-type pos = {line : int ; col : int}[@@deriving yojson]
-
-type qualify = {
-  start : pos;
-  finish : pos [@key "end"];
-  content : string
-}[@@deriving yojson]
-
 let (let*) = Stdlib.Result.bind
 let filter_errors = Result.map_error ~f:(fun m -> `Msg m)
 let norm_error = Result.map_error ~f:(fun (`Msg m) -> m)
@@ -30,6 +22,7 @@ let find_file_s ?containing_folder name src =
   let* found = find_file ?containing_folder name srcf in
   Result.return (Fpath.to_string found)
 
+type pos = {line : int ; col : int}
 let string_of_pos pos = Printf.sprintf "%d:%d" pos.line pos.col
 
 let map_result ~f l = 
