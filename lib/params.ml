@@ -18,17 +18,17 @@ module Log = struct
       | `None -> ()
       | `Bar (_, f) -> f 1
 
-  let debug kind txt = match kind with
-    | `Text -> Stdio.printf "%s\n%!" txt
+  let debug verbose kind txt = match kind with
+    | `Text when verbose -> Stdio.printf "%s\n%!" txt
     | _ -> ()
 
-  let make kind (fs, total) =
+  let make kind (fs, total) verbose =
     let kind = match kind with
       | `Text -> `Text
       | `None -> `None
       | `Bar -> `Bar fs
     in {change = change kind; new_file = new_file total kind;
-        debug = debug kind}
+        debug = debug verbose kind}
 end
 
 
@@ -43,4 +43,4 @@ type t = {
 let of_args (t : Utils.args) info =
   let conf = Conf.read_conf ?conf_file:t.conf_file () in
   {conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
-   behavior = t.behavior; log = Log.make t.report info}
+   behavior = t.behavior; log = Log.make t.report info t.verbose}

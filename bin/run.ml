@@ -55,6 +55,10 @@ let silence_errors =
   let doc = "Silence any error encountered during the analysis." in
   Arg.(value & flag & info ~doc ["silence-errors"])
 
+let verbose =
+  let doc = "Display debug messages (only when reporting mode is 'text')." in
+  Arg.(value & flag & info ~doc ["v"; "verbose"])
+
 let info =
   let doc = "analyse a program to detect opens that make it less legible" in
   let man = [
@@ -69,10 +73,11 @@ let close_t =
   let open Closelib in
   let pack_args
       report conf_file skip_absent
-      silence_errors behavior =
-    Utils.{report; conf_file; skip_absent; silence_errors; behavior} in
+      silence_errors behavior verbose =
+    Utils.{report; conf_file; skip_absent; silence_errors;
+           behavior; verbose} in
   let args = const pack_args $ report $ conf_file $ skip_absent
-             $ silence_errors $ behavior in
+             $ silence_errors $ behavior $ verbose in
   let applied = const Close.execute $ args $ filenames in
   term_result applied
 
