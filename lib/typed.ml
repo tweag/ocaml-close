@@ -2,11 +2,6 @@ open Core
 open Params
 open Utils
 
-open Bigarray
-
-module A = Array0
-
-
 module Extraction = struct
   type t = Typedtree.structure
 
@@ -222,6 +217,7 @@ module Open_uses = struct
     let super = Tast_iterator.default_iterator in
 
     let pat (type k) it (p : k general_pattern) =
+      let f = f p.pat_loc in
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
           | Tpat_type (path, _)
           | Tpat_open (path, _, _) -> f path
@@ -235,6 +231,7 @@ module Open_uses = struct
       end; super.pat it p
     in
     let expr it e =
+      let f = f e.exp_loc in
       begin match e.exp_desc with
         | Texp_instvar (path1, path2, _) -> f path1; f path2
         | Texp_ident (path, _, _)
@@ -252,13 +249,13 @@ module Open_uses = struct
     in
     let module_expr it m =
       begin match m.mod_desc with
-        | Tmod_ident (path, _) -> f path
+        | Tmod_ident (path, _) -> f m.mod_loc path
         | _ -> ()
       end; super.module_expr it m
     in
     let module_type it m =
       begin match m.mty_desc with
-        | Tmty_ident (path, _) -> f path
+        | Tmty_ident (path, _) -> f m.mty_loc path
         | _ -> ()
       end; super.module_type it m
     in
@@ -275,14 +272,14 @@ module Open_uses = struct
       | _, _ -> None
     in
     let uses = ref [] in
-    let f vpath = 
+    let f loc vpath = 
       begin
         let* osegs = segs_of_path opath in
         let* vsegs = segs_of_path vpath in
         match matches osegs vsegs with
         | Some suffix ->
           let suffix = String.concat ~sep:"." suffix in
-          Result.return (uses := suffix :: !uses)
+          Result.return (uses := (suffix, loc) :: !uses)
         | None -> Result.return ()
       end |> ignore (* Silence individual errors, no need to stop everything *)
     in

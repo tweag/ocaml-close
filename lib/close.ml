@@ -22,11 +22,12 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
-let compute_summary (t, use_names) =
+let compute_summary (t, use_sites) =
   let* name = Typed.Open_info.get_name t in
-  let total = List.length use_names in
+  let total = List.length use_sites in
   let h = Hashtbl.create (module String) in
-  List.iter ~f:(Hashtbl.incr h) use_names;
+  List.map ~f:fst use_sites
+  |> List.iter ~f:(Hashtbl.incr h);
   let groups = Hashtbl.length h in
   let layer_only =
     Hashtbl.keys h
@@ -103,8 +104,8 @@ let get_summaries filename params =
   let opens = Typed.Open_info.gather t in
   List.map opens ~f:(fun x ->
       params.log.change "Analyzing";
-      let* use_names = Typed.Open_uses.compute t x in
-      compute_summary (x, use_names)
+      let* use_sites = Typed.Open_uses.compute t x in
+      compute_summary (x, use_sites)
     )
   (* Filter out failing opens *)
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)

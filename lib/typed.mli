@@ -19,5 +19,6 @@ module Open_info : sig
 end
 
 module Open_uses : sig
-  val compute : Extraction.t -> Open_info.t -> (string list, string) result
+  val compute : Extraction.t -> Open_info.t
+    -> ((string * Location.t) list, string) result
 end
