@@ -197,11 +197,41 @@ module Open_info = struct
     strip msegs vsegs |> String.concat ~sep:"." |> Result.return
 end
 
+module Find = struct
+  let position_between ~start ~finish p =
+    Lexing.(start.pos_cnum <= p.pos_cnum && p.pos_cnum <= finish.pos_cnum)
+
+  let position_in loc p =
+    Location.(position_between ~start:loc.loc_start ~finish:loc.loc_end p)
+
+  let location_enclosed ~outer l =
+    Location.(position_in outer l.loc_start && position_in outer l.loc_end)
+
+  let enclosing_module vloc t =
+    let open Typedtree in
+    let best_candidate = ref None in
+    let super = Tast_iterator.default_iterator in
+    let module_expr i m =
+      if location_enclosed ~outer:m.mod_loc vloc then begin
+        match !best_candidate with
+        | None -> best_candidate := Some m
+        | Some m' ->
+          if location_enclosed ~outer:m.mod_loc m'.mod_loc then
+            best_candidate := Some m'
+      end;
+      super.module_expr i m
+    in
+    let it = {super with module_expr} in
+    it.structure it t; !best_candidate
+end
+
 module Open_uses = struct
   open Typedtree
   open Types
 
-  (* TODO actually only visit the scope of the open *)
+  (* TODO if nested opens are about the same module,
+   * either discard nested ones, recommend to remove
+   * or analyse each independently, and reduce the scope of the outer ones *)
 
   let f_if_constr f t = match t.desc with
     | Tconstr (path, _, _) -> f path
@@ -264,6 +294,11 @@ module Open_uses = struct
 
 
   let compute t o =
+    let check_scope =
+      match Find.enclosing_module o.open_loc t with
+      | Some m -> fun loc -> Find.location_enclosed ~outer:m.mod_loc loc
+      | None -> fun _ -> true
+    in
     let* opath = Open_info.get_path o in
     let rec matches os vs = match os, vs with
       | o :: t1, v :: t2 when String.(o = v) -> matches t1 t2
@@ -274,15 +309,18 @@ module Open_uses = struct
     let uses = ref [] in
     let f loc vpath = 
       begin
-        let* osegs = segs_of_path opath in
-        let* vsegs = segs_of_path vpath in
-        match matches osegs vsegs with
-        | Some suffix ->
-          let suffix = String.concat ~sep:"." suffix in
-          Result.return (uses := (suffix, loc) :: !uses)
-        | None -> Result.return ()
+        if check_scope loc then
+          let* osegs = segs_of_path opath in
+          let* vsegs = segs_of_path vpath in
+          match matches osegs vsegs with
+          | Some suffix ->
+            let suffix = String.concat ~sep:"." suffix in
+            Result.return (uses := (suffix, loc) :: !uses)
+          | None -> Result.return ()
+        else Result.return ()
       end |> ignore (* Silence individual errors, no need to stop everything *)
     in
-    try path_iterator t f; Result.return (!uses)
+    try
+      path_iterator t f; Result.return (!uses)
     with Failure e -> Result.fail e
 end
