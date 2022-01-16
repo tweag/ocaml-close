@@ -5,8 +5,12 @@
   (action
   (with-outputs-to tests.output
    (chdir %{project_root}
-   (run ocamlclose -v -r text -b list-only test/open_scope.ml)
-   ))))
+   (run ocamlclose -r text -b list-only
+        lib/typed.ml
+        lib/close.ml
+        lib/conf.ml
+        test/open_scope.ml
+        )))))
 
 (rule
   (alias runtest)

@@ -71,7 +71,6 @@ let apply_rule rule sum =
   in apply rule
 
 let make_decision filename conf sum =
-  (*Stdio.printf "%s\n" (show_open_summary sum);*)
   let open Conf in
   let answers =
     List.map ~f:(fun (x, rule) -> (x, apply_rule rule sum)) conf.rules
@@ -102,8 +101,8 @@ end
 let get_summaries filename params =
   let* t = Typed.Extraction.get_typed_tree ~params filename in
   let opens = Typed.Open_info.gather t in
+  params.log.change "Analyzing";
   List.map opens ~f:(fun x ->
-      params.log.change "Analyzing";
       let* use_sites = Typed.Open_uses.compute t x in
       compute_summary (x, use_sites)
     )
