@@ -41,7 +41,7 @@ module Extraction = struct
           in cache := Some sexp ; Result.return sexp
         else Result.fail stderr
 
-  let parse_describe path t =
+  let parse_describe _params path t =
     let open Sexp in
     let segs = Fpath.segs path in
     let nb = List.length segs in
@@ -83,7 +83,8 @@ module Extraction = struct
     let cwd = Fpath.to_dir_path cwd in
     let* relative_cwd =
       params.log.debug (
-        Printf.sprintf "Dune root: %s" (Fpath.to_string dune_root)
+        Printf.sprintf "Dune root: %s\nCWD: %s"
+          (Fpath.to_string dune_root) (Sys.getcwd ())
       );
       match Fpath.relativize ~root:dune_root cwd with
       | Some p -> Result.return p
@@ -93,7 +94,7 @@ module Extraction = struct
       Fpath.append relative_cwd filename |> Fpath.normalize in
     params.log.change "Describe";
     let* description = call_describe () in
-    let* found_cmt = parse_describe filename_from_root description in
+    let* found_cmt = parse_describe params filename_from_root description in
     let* found_cmt = of_string found_cmt in
     let final = Fpath.(append dune_root found_cmt |> normalize) in
     let finals = Fpath.to_string final in
