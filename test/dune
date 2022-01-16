@@ -1,2 +1,13 @@
 (executable
- (name test))
+  (name test))
+
+(rule
+  (action
+  (with-outputs-to tests.output
+   (chdir %{project_root}
+   (run ocamlclose -v -r text -b list-only test/open_scope.ml)
+   ))))
+
+(rule
+  (alias runtest)
+  (action (diff tests.expected tests.output)))
