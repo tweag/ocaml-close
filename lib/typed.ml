@@ -3,7 +3,7 @@ open Params
 open Utils
 
 let lines_of_loc loc =
-  Warnings.(loc.loc_end.pos_lnum - loc.loc_start.pos_lnum)
+  Warnings.(loc.loc_end.pos_lnum - loc.loc_start.pos_lnum + 1)
 
 module Extraction = struct
   type t = Typedtree.structure
@@ -145,7 +145,11 @@ module Extraction = struct
     | Error (Not_a_typedtree err)
     | Failure err -> parse_error err
 
-  let loc t = Typedtree.((List.last_exn t.str_items).str_loc)
+  let loc t =
+    let open Typedtree in
+    let loc = (List.hd_exn t.str_items).str_loc in
+    let loc_end = (List.last_exn t.str_items).str_loc.loc_end in
+    {loc with loc_end}
 
   let source_lines t = lines_of_loc (loc t)
 end
@@ -233,10 +237,10 @@ module Find = struct
 
   let scope_of_open t op =
     let open Typedtree in
-    let loc = op.open_expr.mod_loc in
+    let loc = op.open_loc in
     let surround_loc = 
       match enclosing_module loc t with
-      | None -> (List.last_exn t.str_items).str_loc
+      | None -> Extraction.loc t
       | Some m -> m.mod_loc
     in {loc with loc_end = surround_loc.loc_end}
 
@@ -312,6 +316,7 @@ module Open_uses = struct
 
 
   let compute t o =
+    (* Format.printf "%a@." Printtyped.implementation t; *)
     let check_scope =
       match Find.enclosing_module o.open_loc t with
       | Some m -> fun loc -> Find.location_enclosed ~outer:m.mod_loc loc

@@ -11,6 +11,7 @@ type open_summary = {
   groups : int;
   layer_only : bool;
   imports_syntax : bool;
+  scope_lines : int;
 }[@@deriving show]
 
 let is_module_id id = Char.is_uppercase id.[0]
@@ -22,7 +23,8 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
-let compute_summary (t, use_sites) =
+let compute_summary tree (t, use_sites) =
+  let scope_lines = Typed.Find.scope_lines tree t in
   let* name = Typed.Open_info.get_name t in
   let total = List.length use_sites in
   let h = Hashtbl.create (module String) in
@@ -37,7 +39,7 @@ let compute_summary (t, use_sites) =
     Hashtbl.keys h
     |> List.exists ~f:is_operator_id
   in
-  Result.return {module_name = name; total;
+  Result.return {module_name = name; total; scope_lines;
                  groups; layer_only; imports_syntax}
 
 let enact_decision filename sum =
@@ -104,7 +106,7 @@ let get_summaries filename params =
   params.log.change "Analyzing";
   List.map opens ~f:(fun x ->
       let* use_sites = Typed.Open_uses.compute t x in
-      compute_summary (x, use_sites)
+      compute_summary t (x, use_sites)
     )
   (* Filter out failing opens *)
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
