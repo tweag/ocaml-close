@@ -39,11 +39,13 @@ let compute_summary tree (t, use_sites) =
   Result.return {module_name = name; total; scope_lines;
                  groups; layer_only; imports_syntax}
 
+(* TODO: command to automatically perform the modification *)
+(* TODO: tell on which line is the action *)
 let enact_decision filename sum =
   let open Conf in
   Progress.interject_with (fun () -> function
       | Keep -> ()
-      | Remove -> Stdio.printf "%s: refactor open %s\n" filename sum.module_name
+      | Remove -> Stdio.printf "%s: remove open %s\n" filename sum.module_name
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
@@ -66,6 +68,11 @@ let module_name_equal a b =
     let prefix = List.take v pat_l in
     check_prefix prefix pat &&
     String.(List.last_exn pat = "*")
+
+(* TODO: add --explain flag to explain why a rule was applied *)
+(* TODO: implement move rule *)
+(* TODO: implement to_local rule *)
+(* TODO: add to_structured rule *)
 
 let apply_rule tree rule sum =
   let open Conf in

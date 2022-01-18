@@ -72,6 +72,9 @@ let default = {rules = []; precedence = []}
 
 let conf_file_name = ".ocamlclose"
 
+(* TODO allow multiple .ocamlclose, merge their rules. The root one should
+ * contain a precedence field, or a root field maybe *)
+
 let parse_conf filename =
   try
     let raw = Sexp.load_sexp filename in
