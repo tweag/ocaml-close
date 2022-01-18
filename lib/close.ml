@@ -50,12 +50,14 @@ let enact_decision filename sum =
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
-let apply_rule rule sum =
+let apply_rule tree rule sum =
   let open Conf in
   let eval = function
     | Const n -> n
     | Uses -> sum.total
     | Symbols -> sum.groups
+    | File_lines -> Typed.Extraction.source_lines tree
+    | Scope_lines -> sum.scope_lines
   in
   let rec apply = function
     | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
@@ -72,10 +74,10 @@ let apply_rule rule sum =
     | Exports_modules_only -> sum.layer_only
   in apply rule
 
-let make_decision filename conf sum =
+let make_decision filename tree conf sum =
   let open Conf in
   let answers =
-    List.map ~f:(fun (x, rule) -> (x, apply_rule rule sum)) conf.rules
+    List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum)) conf.rules
   in
   let decision =
     List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
@@ -100,13 +102,12 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
-let get_summaries filename params =
-  let* t = Typed.Extraction.get_typed_tree ~params filename in
-  let opens = Typed.Open_info.gather t in
+let get_summaries tree params =
+  let opens = Typed.Open_info.gather tree in
   params.log.change "Analyzing";
   List.map opens ~f:(fun x ->
-      let* use_sites = Typed.Open_uses.compute t x in
-      compute_summary t (x, use_sites)
+      let* use_sites = Typed.Open_uses.compute tree x in
+      compute_summary tree (x, use_sites)
     )
   (* Filter out failing opens *)
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
@@ -115,9 +116,10 @@ let get_summaries filename params =
 let analyse params filename =
   begin
     params.log.change "Fetching";
-    let* summaries = get_summaries filename params in
+    let* tree = Typed.Extraction.get_typed_tree ~params filename in
+    let* summaries = get_summaries tree params in
     let f = match params.behavior with
-      | `Suggest -> make_decision filename params.conf
+      | `Suggest -> make_decision filename tree params.conf
       | `List_only -> fun x -> Stdio.printf "%s\n" (show_open_summary x)
     in
     List.iter summaries ~f;

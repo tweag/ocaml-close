@@ -2,7 +2,8 @@
    ((keep
       (or ((in-list ("Base" "Core"))
            exports-syntax
-           exports-modules-only)))
+           exports-modules-only
+           (<= scope-lines 40))))
     (remove
       (or ((<= symbols 4)
            (<= uses 10))))
