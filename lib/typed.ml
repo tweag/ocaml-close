@@ -249,19 +249,20 @@ end
 
 module Open_uses = struct
   open Typedtree
-  open Types
 
   (* TODO if nested opens are about the same module,
    * either discard nested ones, recommend to remove
    * or analyse each independently, and reduce the scope of the outer ones *)
 
-  let f_if_constr f t = match t.desc with
+  let f_if_constr f t =
+    let open Types in
+    match t.desc with
     | Tconstr (path, _, _) -> f path
     | _ -> ()
 
-  let check_constructor f desc = f_if_constr f desc.cstr_res
+  let check_constructor f desc = f_if_constr f desc.Types.cstr_res
 
-  let check_label f desc = f_if_constr f desc.lbl_res
+  let check_label f desc = f_if_constr f desc.Types.lbl_res
 
   let path_iterator t f =
     let super = Tast_iterator.default_iterator in
