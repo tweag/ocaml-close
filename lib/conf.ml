@@ -4,6 +4,10 @@ open Sexplib
 
 type expr =
   | Const of int
+  | Plus of expr * expr
+  | Minus of expr * expr
+  | Mult of expr * expr
+  | Div of expr * expr
   | Uses
   | Symbols
   | Scope_lines
@@ -12,13 +16,17 @@ type expr =
 
 let is_int s = try ignore @@ Int.of_string s; true with _ -> false
 
-let expr_of_sexp =
+let rec expr_of_sexp =
   let open Sexp in function
     | Atom x when is_int x -> Const (Int.of_string x)
     | Atom "uses" -> Uses
     | Atom "symbols" -> Symbols
     | Atom "scope-lines" -> Scope_lines
     | Atom "file-lines" -> File_lines
+    | List [Atom "+"; e1; e2] -> Plus (expr_of_sexp e1, expr_of_sexp e2)
+    | List [Atom "-"; e1; e2] -> Minus (expr_of_sexp e1, expr_of_sexp e2)
+    | List [Atom "*"; e1; e2] -> Mult (expr_of_sexp e1, expr_of_sexp e2)
+    | List [Atom "/"; e1; e2] -> Div (expr_of_sexp e1, expr_of_sexp e2)
     | _ -> failwith "Not an exp"
 
 type rule =
