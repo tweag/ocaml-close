@@ -2,9 +2,6 @@ open Base
 open Utils
 open Params
 
-(* Possible TODO: use typerex-lint ? But it's outdated *)
-(* TODO: support for wildcard *)
-
 type open_summary = {
   module_name : string;
   total : int;
@@ -50,6 +47,26 @@ let enact_decision filename sum =
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
+(* Supports wildcard in module name *)
+let module_name_equal a b =
+  let la = String.split ~on:'.' a in
+  let lb = String.split ~on:'.' b in
+  let check_prefix la lb =
+    List.for_all2_exn la lb ~f:(fun a b ->
+        String.(a = "*" || b = "*" || a = b)
+      )
+  in
+  let la_l = List.length la in
+  let lb_l = List.length lb in
+  if la_l = lb_l then
+    check_prefix la lb
+  else
+    let pat, v = if la_l > lb_l then lb, la else la, lb in
+    let pat_l = List.length pat in
+    let prefix = List.take v pat_l in
+    check_prefix prefix pat &&
+    String.(List.last_exn pat = "*")
+
 let apply_rule tree rule sum =
   let open Conf in
   let rec eval = function
@@ -72,7 +89,7 @@ let apply_rule tree rule sum =
     | Geq (e1, e2) -> (eval e1) >= (eval e2)
     | True -> true
     | False -> false
-    | In_list l -> List.mem l sum.module_name ~equal:String.equal
+    | In_list l -> List.mem l sum.module_name ~equal:module_name_equal
     | Exports_syntax -> sum.imports_syntax
     | Exports_modules -> failwith "Exports_modules not yet implemented"
     | Exports_modules_only -> sum.layer_only
