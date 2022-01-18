@@ -4,9 +4,14 @@ A tool to detect uses of `open Module` in an OCaml source that are not
 used much, and automatically suggest modifications to make the source more
 legible.
 
-Will also perform several other analyses.
+**DISCLAIMER: this tool is in active development and currently not mature nor
+stable. No guarantee is made about the quality of its results; use it at your
+own risk.**
 
 ## Installation
+
+Note that this tool will currently only build with OCaml 4.11.2 due to our usage
+of `compiler-libs`.
 
 ```bash
 dune build @install
@@ -83,9 +88,7 @@ Finally, the configuration states that `keep` takes the priority on `remove`,
 meaning that an `open` that matches the `keep` rule will be kept even if it also
 matches the `remove` rule.
 
-## Status
-
-### Known limitations
+## Known limitations
 
 - Uses ocaml-libs, hence for now it only works with OCaml 4.11.2.
 - Does not support MLI files for now
