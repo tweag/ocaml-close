@@ -3,3 +3,11 @@
  (name run)
  (libraries closelib cmdliner)
 )
+
+(rule
+  (with-stdout-to ocamlclose.1 (run ocamlclose --help=groff)))
+
+(install
+  (files ocamlclose.1)
+  (section man)
+  (package ocamlclose))
