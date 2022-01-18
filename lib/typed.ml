@@ -2,6 +2,9 @@ open Core
 open Params
 open Utils
 
+let lines_of_loc loc =
+  Warnings.(loc.loc_end.pos_lnum - loc.loc_start.pos_lnum)
+
 module Extraction = struct
   type t = Typedtree.structure
 
@@ -142,6 +145,9 @@ module Extraction = struct
     | Error (Not_a_typedtree err)
     | Failure err -> parse_error err
 
+  let loc t = Typedtree.((List.last_exn t.str_items).str_loc)
+
+  let source_lines t = lines_of_loc (loc t)
 end
 
 let segs_of_path path = 
@@ -224,6 +230,17 @@ module Find = struct
     in
     let it = {super with module_expr} in
     it.structure it t; !best_candidate
+
+  let scope_of_open t op =
+    let open Typedtree in
+    let loc = op.open_expr.mod_loc in
+    let surround_loc = 
+      match enclosing_module loc t with
+      | None -> (List.last_exn t.str_items).str_loc
+      | Some m -> m.mod_loc
+    in {loc with loc_end = surround_loc.loc_end}
+
+  let scope_lines t op = scope_of_open t op |> lines_of_loc
 end
 
 module Open_uses = struct
