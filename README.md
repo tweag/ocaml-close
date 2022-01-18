@@ -50,7 +50,11 @@ PRED :=
     | (>= EXPR EXPR)
     | (<= EXPR EXPR)
     | (= EXPR EXPR)
-EXPR := <number> | symbols | uses
+EXPR := <number> | symbols | uses | scope-lines | file-lines
+    | (+ EXPR EXPR)
+    | (- EXPR EXPR)
+    | (* EXPR EXPR)
+    | (/ EXPR EXPR)
 ```
 
 ### Meaning

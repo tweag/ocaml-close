@@ -52,12 +52,16 @@ let enact_decision filename sum =
 
 let apply_rule tree rule sum =
   let open Conf in
-  let eval = function
+  let rec eval = function
     | Const n -> n
     | Uses -> sum.total
     | Symbols -> sum.groups
     | File_lines -> Typed.Extraction.source_lines tree
     | Scope_lines -> sum.scope_lines
+    | Plus (e1, e2) -> eval e1 + eval e2
+    | Mult (e1, e2) -> eval e1 * eval e2
+    | Minus (e1, e2) -> eval e1 - eval e2
+    | Div (e1, e2) -> eval e1 / eval e2
   in
   let rec apply = function
     | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
