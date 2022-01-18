@@ -63,7 +63,8 @@ let info =
   let doc = "analyse a program to detect opens that make it less legible" in
   let man = [
     `S Manpage.s_bugs;
-    `P "Email bug reports to virgile.robles@tweag.io." ]
+    `P "Email bug reports to virgile.robles@tweag.io or open
+        an issue at https://github.com/Firobe/ocaml-close/issues" ]
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
