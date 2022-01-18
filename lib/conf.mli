@@ -2,6 +2,8 @@ type expr =
   | Const of int
   | Uses
   | Symbols
+  | Scope_lines
+  | File_lines
 
 type rule =
   | And of rule list

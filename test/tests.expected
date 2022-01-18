@@ -4,14 +4,14 @@ Fetching...
 Describe...
 Analyzing...
 { Close.module_name = "Types"; total = 4; groups = 4; layer_only = false;
-  imports_syntax = false; scope_lines = 97 }
+  imports_syntax = false; scope_lines = 98 }
 { Close.module_name = "Typedtree"; total = 30; groups = 13;
-  layer_only = false; imports_syntax = false; scope_lines = 98 }
+  layer_only = false; imports_syntax = false; scope_lines = 99 }
 { Close.module_name = "Closelib.Utils"; total = 28; groups = 4;
   layer_only = false; imports_syntax = true; scope_lines = 347 }
 { Close.module_name = "Closelib.Params"; total = 7; groups = 2;
   layer_only = false; imports_syntax = false; scope_lines = 348 }
-{ Close.module_name = "Core"; total = 136; groups = 39; layer_only = false;
+{ Close.module_name = "Core"; total = 135; groups = 39; layer_only = false;
   imports_syntax = true; scope_lines = 349 }
 Processing lib/close.ml (2/4)
 Fetching...
@@ -20,21 +20,21 @@ Analyzing...
 { Close.module_name = "Progress"; total = 15; groups = 12; layer_only = true;
   imports_syntax = true; scope_lines = 13 }
 { Close.module_name = "Closelib.Params"; total = 11; groups = 3;
-  layer_only = false; imports_syntax = false; scope_lines = 149 }
+  layer_only = false; imports_syntax = false; scope_lines = 151 }
 { Close.module_name = "Closelib.Utils"; total = 7; groups = 3;
-  layer_only = false; imports_syntax = true; scope_lines = 150 }
+  layer_only = false; imports_syntax = true; scope_lines = 152 }
 { Close.module_name = "Base"; total = 77; groups = 45; layer_only = false;
-  imports_syntax = true; scope_lines = 151 }
+  imports_syntax = true; scope_lines = 153 }
 Processing lib/conf.ml (3/4)
 Fetching...
 Describe...
 Analyzing...
-{ Close.module_name = "Sexplib"; total = 29; groups = 6; layer_only = true;
-  imports_syntax = false; scope_lines = 88 }
+{ Close.module_name = "Sexplib"; total = 31; groups = 6; layer_only = true;
+  imports_syntax = false; scope_lines = 92 }
 { Close.module_name = "Closelib.Utils"; total = 3; groups = 2;
-  layer_only = false; imports_syntax = true; scope_lines = 89 }
+  layer_only = false; imports_syntax = true; scope_lines = 93 }
 { Close.module_name = "Core"; total = 55; groups = 18; layer_only = false;
-  imports_syntax = true; scope_lines = 90 }
+  imports_syntax = true; scope_lines = 94 }
 Processing test/open_scope.ml (4/4)
 Fetching...
 Describe...

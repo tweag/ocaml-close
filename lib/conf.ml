@@ -6,6 +6,8 @@ type expr =
   | Const of int
   | Uses
   | Symbols
+  | Scope_lines
+  | File_lines
 [@@deriving sexp_of]
 
 let is_int s = try ignore @@ Int.of_string s; true with _ -> false
@@ -15,6 +17,8 @@ let expr_of_sexp =
     | Atom x when is_int x -> Const (Int.of_string x)
     | Atom "uses" -> Uses
     | Atom "symbols" -> Symbols
+    | Atom "scope-lines" -> Scope_lines
+    | Atom "file-lines" -> File_lines
     | _ -> failwith "Not an exp"
 
 type rule =
