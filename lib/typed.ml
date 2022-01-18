@@ -259,10 +259,8 @@ module Open_uses = struct
     | Tconstr (path, _, _) -> f path
     | _ -> ()
 
-  (* TODO replace last element of path by constructor name ? *)
   let check_constructor f desc = f_if_constr f desc.cstr_res
 
-  (* TODO idem ? *)
   let check_label f desc = f_if_constr f desc.lbl_res
 
   let path_iterator t f =
