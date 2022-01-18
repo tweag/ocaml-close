@@ -2,15 +2,15 @@
   (name test))
 
 (rule
+  (targets tests.output)
+  (deps ../bin/run.exe (alias check))
   (action
-  (with-outputs-to tests.output
-   (chdir %{project_root}
-   (run ocamlclose -r text -b list-only
-        lib/typed.ml
-        lib/close.ml
-        lib/conf.ml
-        test/open_scope.ml
-        )))))
+    (with-outputs-to tests.output
+     (progn
+       (pipe-stdout
+         (run find)
+         (run grep cmt)
+         (run xargs ../bin/run.exe -r text -b list-only))))))
 
 (rule
   (alias runtest)
