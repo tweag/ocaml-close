@@ -7,7 +7,7 @@ module Log : sig
 end
 
 type t = {
-  conf : Conf.conf;
+  conf : string -> Conf.conf;
   skip_absent : bool;
   silence_errors : bool;
   log : Log.t;

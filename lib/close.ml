@@ -146,8 +146,9 @@ let analyse params filename =
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
     let* summaries = get_summaries tree params in
+    let conf = params.conf filename in
     let f = match params.behavior with
-      | `Suggest -> make_decision filename tree params.conf
+      | `Suggest -> make_decision filename tree conf
       | `List_only -> fun x -> Stdio.printf "%s\n" (show_open_summary x)
     in
     List.iter summaries ~f;

@@ -26,8 +26,9 @@ type rule =
 type rule_kind = Keep | Remove | To_local | Move
 
 type conf = {
+  root : bool;
   rules : (rule_kind * rule) list;
   precedence : rule_kind list;
 }
 
-val read_conf : ?conf_file:string -> unit -> conf
+val read_conf : ?conf_file:string -> string -> conf
