@@ -64,16 +64,14 @@ type rule_kind = Keep | Remove | To_local | Move
 [@@deriving sexp]
 
 type conf = {
+  root : bool [@sexp.bool]; 
   rules : (rule_kind * rule) list;
-  precedence : rule_kind list;
+  precedence : rule_kind list [@sexp.list];
 }[@@deriving sexp]
 
-let default = {rules = []; precedence = []}
+let default = {root = true; rules = []; precedence = []}
 
 let conf_file_name = ".ocamlclose"
-
-(* TODO allow multiple .ocamlclose, merge their rules. The root one should
- * contain a precedence field, or a root field maybe *)
 
 let parse_conf filename =
   try
@@ -84,17 +82,50 @@ let parse_conf filename =
   | Failure _ -> Result.failf "File ended too soon"
   | e -> Result.failf "Conversion error '%s'" (Exn.to_string e)
 
-let read_conf ?conf_file () =
-  let do_try () =
-    let* filename =
-      match conf_file with
-      | Some x -> Result.return x
-      | None ->
-        let src = Sys.getcwd () in
-        let* found = find_file_s conf_file_name src in
-        Result.return found
+let rec find_all_conf_files src =
+  match find_file_s conf_file_name src with
+  | Error _ -> Result.return []
+  | Ok f ->
+    let* conf = parse_conf f in
+    if conf.root then Result.return [conf]
+    else
+      let* path = Fpath.of_string f |> norm_error in
+      let src' = Fpath.parent path |> Fpath.parent |> Fpath.to_string in
+      let* acc = find_all_conf_files src' in
+      Result.return (acc @ [conf])
+
+let merge_confs l =
+  match l with
+  | [] -> Result.failf "No configuration file found"
+  | h :: t ->
+    let merge acc c =
+      begin if not @@ List.is_empty c.precedence then
+          Stdio.printf "Warning: a non-root configuration file has a precedence field, ignored.\n"
+      end;
+      let to_merge, to_add = List.partition_tf c.rules
+          ~f:(fun (kind, _) ->
+              List.Assoc.mem acc.rules ~equal:Poly.equal kind) in
+      let merged = List.map acc.rules ~f:(fun ((akind, arule) as r) ->
+          match List.Assoc.find to_merge ~equal:Poly.equal akind with
+          | None -> r
+          | Some brule -> (akind, Or [arule; brule])
+        )
+      in
+      let added = merged @ to_add in
+      {acc with rules = added}
     in
-    parse_conf filename
+    List.fold t ~init:h ~f:merge |> Result.return
+
+let read_conf ?conf_file filename =
+  let do_try () =
+      match conf_file with
+      | Some x -> parse_conf x
+      | None ->
+        (* TODO possibly memoize the result *)
+        let* path = Fpath.of_string filename |> norm_error in
+        let src = Fpath.parent path |> Fpath.to_string in
+        let* found = find_all_conf_files src in
+        merge_confs found
   in match do_try () with
   | Ok c -> c
   | Error m ->

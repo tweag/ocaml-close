@@ -26,15 +26,19 @@ from inside a directory owned by dune.
 *For a list of options, see `ocamlclose --help`*
 
 `ocaml-close` will print a list of suggested actions based on the configuration
-stored in a `.ocamlclose` file which must be at the root of the project.
+stored in `.ocamlclose` files. There may be multiple `.ocamlclose` file in the
+project tree. Their behavior is described in the next section.
 
 ## Configuration
 
 ### Grammar
 
-The configuration has the following grammar:
+The configuration has the following grammar, where `root` and `precedence`
+fields are optional:
+
 ```scheme
-((rules (RULE+))
+((root)
+ (rules (RULE+))
  (precedence (KIND+)))
 
 RULE := (KIND PRED)
@@ -91,6 +95,29 @@ less then 4.
 Finally, the configuration states that `keep` takes the priority on `remove`,
 meaning that an `open` that matches the `keep` rule will be kept even if it also
 matches the `remove` rule.
+
+### Multiple files
+
+`ocamlclose` will try to find `.ocamlclose` files by searching parent
+directories of the files under analysis. It gathers all found files, stopping if
+a file contains the `root` field. It then merges the rules of the found
+configuration files with a disjunction.
+
+Hence, your project should always contain a main `.ocamlclose` file at its root with
+the `root` field. This configuration can then be refined by other files in
+subdirectories.
+
+For example, given the following directory tree:
+```
+├── a.ml
+├── foo
+│   ├── b.ml
+│   └── .ocamlclose
+└── .ocamlclose
+```
+
+If `foo/.ocamlclose` contains `((rules ((keep (in-list ("Bar"))))))` then an
+`open Bar` will always be kept for all files in `foo/` and its subdirectories.
 
 ## Known limitations
 
