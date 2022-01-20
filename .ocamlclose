@@ -5,7 +5,7 @@
            exports-syntax
            exports-modules-only
            (<= scope-lines 40))))
-    (remove (<= uses 500))
+    (remove (<= uses 5))
     (to_local false)
     (move false)))
  (precedence (keep remove to_local move)))
