@@ -116,16 +116,22 @@ let merge_confs l =
     in
     List.fold t ~init:h ~f:merge |> Result.return
 
+let conf_memo = Hashtbl.create (module String)
 let read_conf ?conf_file filename =
   let do_try () =
       match conf_file with
       | Some x -> parse_conf x
       | None ->
-        (* TODO possibly memoize the result *)
         let* path = Fpath.of_string filename |> norm_error in
         let src = Fpath.parent path |> Fpath.to_string in
-        let* found = find_all_conf_files src in
-        merge_confs found
+        begin match Hashtbl.find conf_memo src with
+          | Some c -> Result.return c
+          | None ->
+            let* found = find_all_conf_files src in
+            let* data = merge_confs found in
+            Hashtbl.add_exn conf_memo ~key:src ~data;
+            Result.return data
+        end
   in match do_try () with
   | Ok c -> c
   | Error m ->
