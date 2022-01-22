@@ -4,7 +4,7 @@ synopsis: "Kill 'em open"
 description: "Kill 'm open"
 maintainer: ["virgile.robles@pm.me"]
 authors: ["Virgile Robles"]
-license: "LGPL"
+license: "LGPL-2.1-or-later"
 homepage: "https://github.com/Firobe/ocaml-close"
 bug-reports: "https://github.com/Firobe/ocaml-close/issues"
 depends: [
