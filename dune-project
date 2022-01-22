@@ -3,7 +3,7 @@
 
 (generate_opam_files true)
 
-(license LGPL)
+(license LGPL-2.1-or-later)
 (authors "Virgile Robles")
 (maintainers "virgile.robles@pm.me")
 (source (github Firobe/ocaml-close))
