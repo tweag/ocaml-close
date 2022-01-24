@@ -123,7 +123,9 @@ let read_conf ?conf_file filename =
       | Some x -> parse_conf x
       | None ->
         let* path = Fpath.of_string filename |> norm_error in
-        let src = Fpath.parent path |> Fpath.to_string in
+        let* pwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
+        let src = Fpath.(append pwd (parent path) |> normalize |> to_string) in
+        (* TODO: memoize all upper directories *)
         begin match Hashtbl.find conf_memo src with
           | Some c -> Result.return c
           | None ->
