@@ -147,9 +147,11 @@ module Extraction = struct
 
   let loc t =
     let open Typedtree in
-    let loc = (List.hd_exn t.str_items).str_loc in
-    let loc_end = (List.last_exn t.str_items).str_loc.loc_end in
-    {loc with loc_end}
+    if List.is_empty t.str_items then Location.none
+    else
+      let loc = (List.hd_exn t.str_items).str_loc in
+      let loc_end = (List.last_exn t.str_items).str_loc.loc_end in
+      {loc with loc_end}
 
   let source_lines t = lines_of_loc (loc t)
 end

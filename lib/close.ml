@@ -4,7 +4,7 @@ open Utils
 type open_summary = {
   module_name : string;
   total : int;
-  groups : int;
+  symbols : string list;
   layer_only : bool;
   imports_syntax : bool;
   scope_lines : int;
@@ -33,7 +33,7 @@ let compute_summary tree (t, use_sites) =
     let oloc = Typed.Open_info.get_position t in
     Int.abs (oloc.line - optimal_pos.line)
   in
-  let groups = Hashtbl.length h in
+  let symbols = Hashtbl.keys h in
   let layer_only =
     Hashtbl.keys h
     |> List.for_all ~f:is_module_id
@@ -43,7 +43,7 @@ let compute_summary tree (t, use_sites) =
     |> List.exists ~f:is_operator_id
   in
   Result.return {module_name = name; total; scope_lines;
-                 groups; layer_only; imports_syntax;
+                 symbols; layer_only; imports_syntax;
                  optimal_pos; dist_to_optimal}
 
 (* TODO: command to automatically perform the modification *)
@@ -56,6 +56,10 @@ let enact_decision filename sum =
       | Move ->
         Stdio.printf "%s: move open %s to line %d\n" filename sum.module_name
           sum.optimal_pos.line
+      | Structure ->
+        let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
+        Stdio.printf
+        "%s: explicitely open values %s from %s\n" filename symbols sum.module_name
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
@@ -81,14 +85,13 @@ let module_name_equal a b =
 
 (* TODO: add --explain flag to explain why a rule was applied *)
 (* TODO: implement to_local rule *)
-(* TODO: add to_structured rule *)
 
 let apply_rule tree rule sum =
   let open Conf in
   let rec eval = function
     | Const n -> n
     | Uses -> sum.total
-    | Symbols -> sum.groups
+    | Symbols -> List.length sum.symbols
     | File_lines -> Typed.Extraction.source_lines tree
     | Scope_lines -> sum.scope_lines
     | Dist_to_optimal -> sum.dist_to_optimal

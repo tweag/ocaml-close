@@ -24,7 +24,7 @@ type rule =
   | Exports_modules
   | Exports_modules_only
 
-type rule_kind = Keep | Remove | To_local | Move
+type rule_kind = Keep | Remove | To_local | Move | Structure
 
 type conf = {
   root : bool;
