@@ -50,8 +50,8 @@ let rec rule_of_sexp =
   let open Sexp in function
     | Atom "true" -> True
     | Atom "false" -> False
-    | List [Atom "and"; r] -> And (List.t_of_sexp rule_of_sexp r)
-    | List [Atom "or"; r] -> Or (List.t_of_sexp rule_of_sexp r)
+    | List (Atom "and" :: r) -> And (List.map ~f:rule_of_sexp r)
+    | List (Atom "or" :: r) -> Or (List.map ~f:rule_of_sexp r)
     | List [Atom "not"; r] -> Not (rule_of_sexp r)
     | List [Atom "="; a; b] -> Eq (expr_of_sexp a, expr_of_sexp b)
     | List [Atom "<="; a; b] -> Leq (expr_of_sexp a, expr_of_sexp b)
