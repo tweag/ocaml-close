@@ -52,6 +52,9 @@ module Open_uses : sig
       position *)
 
   val by_function : Extraction.t -> use list -> (Utils.pos, int) Base.Hashtbl.t option
+  (** [by_function tree uses] returns a categorization of the [uses] of an open
+      in [tree] by their containing function.
+  *)
 end
 
 (** For scope-related utils. *)
