@@ -1,6 +1,5 @@
 open Base
 open Utils
-open Params
 
 type open_summary = {
   module_name : string;
@@ -54,6 +53,9 @@ let enact_decision filename sum =
   Progress.interject_with (fun () -> function
       | Keep -> ()
       | Remove -> Stdio.printf "%s: remove open %s\n" filename sum.module_name
+      | Move ->
+        Stdio.printf "%s: move open %s to line %d\n" filename sum.module_name
+          sum.optimal_pos.line
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
@@ -78,7 +80,6 @@ let module_name_equal a b =
     String.(List.last_exn pat = "*")
 
 (* TODO: add --explain flag to explain why a rule was applied *)
-(* TODO: implement move rule *)
 (* TODO: implement to_local rule *)
 (* TODO: add to_structured rule *)
 
@@ -90,6 +91,7 @@ let apply_rule tree rule sum =
     | Symbols -> sum.groups
     | File_lines -> Typed.Extraction.source_lines tree
     | Scope_lines -> sum.scope_lines
+    | Dist_to_optimal -> sum.dist_to_optimal
     | Plus (e1, e2) -> eval e1 + eval e2
     | Mult (e1, e2) -> eval e1 * eval e2
     | Minus (e1, e2) -> eval e1 - eval e2
@@ -138,6 +140,7 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
+open Params
 let get_summaries tree params =
   let opens = Typed.Open_info.gather tree in
   params.log.change "Analyzing";

@@ -47,6 +47,9 @@ module Open_uses : sig
       from the opened module) and its location in the source file *)
 
   val optimal_global_position : Extraction.t -> use list -> Utils.pos
+  (** [optimal_global_position tree uses] returns the position of the last
+      structure item that captures all uses of an open (hence its optimal global
+      position *)
 end
 
 (** For scope-related utils. *)
