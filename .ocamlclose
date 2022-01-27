@@ -2,7 +2,7 @@
 
 (rules
 
-  ((keep
+  (keep
      (or (in-list ("Base" "Core" "Core_kernel"))
          exports-syntax
          exports-modules-only
@@ -12,6 +12,6 @@
 
    (structure (and (<= symbols 5) (>= uses 15)))
 
-   (move (>= dist-to-optimal 40))))
+   (move (>= dist-to-optimal 40)))
 
 (precedence (keep remove structure move))
