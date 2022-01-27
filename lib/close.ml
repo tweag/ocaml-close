@@ -59,7 +59,7 @@ let enact_decision filename sum =
       | Structure ->
         let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
         Stdio.printf
-        "%s: explicitely open values %s from %s\n" filename symbols sum.module_name
+        "%s: explicitly open values %s from %s\n" filename symbols sum.module_name
       | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
     )
 
