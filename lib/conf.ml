@@ -62,7 +62,7 @@ let rec rule_of_sexp =
     | Atom "exports-modules" -> Exports_modules
     | s -> Stdio.printf "Unexpected token: %s\n" (Sexp.to_string s); failwith "Not a rule"
 
-type rule_kind = Keep | Remove | To_local | Move
+type rule_kind = Keep | Remove | To_local | Move | Structure
 [@@deriving sexp]
 
 type conf = {
