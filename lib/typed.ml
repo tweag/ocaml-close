@@ -1,11 +1,12 @@
 open Core
 open Utils
+open Typedtree
 
 let lines_of_loc loc =
   Warnings.(loc.loc_end.pos_lnum - loc.loc_start.pos_lnum + 1)
 
 module Extraction = struct
-  type t = Typedtree.structure
+  type t = structure
 
   let find_dune_root () = 
     let* src = Sys.getcwd () |> Fpath.of_string |> norm_error in
@@ -79,8 +80,8 @@ module Extraction = struct
 
   let of_string x = Fpath.of_string x |> norm_error
 
-  open Params
   let find_cmt_location ~params filename =
+    let open Params in
     let* dune_root = find_dune_root () in
     let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
     let cwd = Fpath.to_dir_path cwd in
@@ -146,7 +147,6 @@ module Extraction = struct
     | Failure err -> parse_error err
 
   let loc t =
-    let open Typedtree in
     if List.is_empty t.str_items then Location.none
     else
       let loc = (List.hd_exn t.str_items).str_loc in
@@ -166,15 +166,14 @@ let pos_of_lexpos lp =
 
 module Open_info = struct
 
-  type t = Typedtree.open_declaration
+  type t = open_declaration
 
   let iterator t f =
-    let open Typedtree in
     let super = Tast_iterator.default_iterator in
     let structure_item i s =
       begin
         match s.str_desc with
-        | Typedtree.Tstr_open o ->
+        | Tstr_open o ->
           (* Do not consider structured opens *)
           if List.is_empty o.open_bound_items then f o
         | _ -> ()
@@ -194,7 +193,7 @@ module Open_info = struct
 
   let get_path (t : t) =
     match (t.open_expr).mod_desc with
-    | Typedtree.Tmod_ident (path, _) -> Result.return path
+    | Tmod_ident (path, _) -> Result.return path
     | _ -> Result.fail "This module is not a simple identifier"
 
   let get_name (t : t) =
@@ -245,16 +244,41 @@ module Find = struct
     it.structure it t; !best_candidate
 
   let scope_of_open t op =
-    let open Typedtree in
     let loc = op.open_loc in
     let surround_loc = enclosing_structure [loc] t |> Extraction.loc in
     {loc with loc_end = surround_loc.loc_end}
 
   let scope_lines t op = scope_of_open t op |> lines_of_loc
+
+  let enclosing_function vlocs t =
+    let best_candidate = ref None in
+    let super = Tast_iterator.default_iterator in
+    let structure_item i si =
+      match si.str_desc with
+      | Tstr_value (_, vbs) ->
+        List.iter vbs ~f:(fun vb ->
+            let fn_loc = vb.vb_loc in
+            let all_enclosed = Core_kernel.List.for_all vlocs ~f:(
+                location_enclosed ~outer:fn_loc
+              )
+            in
+            if all_enclosed then begin
+              match !best_candidate with
+              | None -> best_candidate := Some vb
+              | Some old_vb ->
+                let loc, old_loc = vb.vb_loc, old_vb.vb_loc in
+                if location_enclosed ~outer:old_loc loc then
+                  best_candidate := Some vb
+            end;
+          ); super.structure_item i si
+      | _ -> super.structure_item i si
+    in
+    let it = {super with structure_item} in
+    it.structure it t; !best_candidate
+
 end
 
 module Open_uses = struct
-  open Typedtree
   type use = (string * Location.t)
 
   (* TODO if nested opens are about the same module,
@@ -377,4 +401,17 @@ module Open_uses = struct
       in
       let best_pos = (fst (Option.value_exn best_res)).Location.loc_start
       in pos_of_lexpos best_pos
+
+  let by_function t uses =
+    let locs = List.map ~f:snd uses in
+    let functions = List.map ~f:(fun l -> Find.enclosing_function [l] t) locs in
+    if List.exists functions ~f:Option.is_none then None
+    else
+      let functions = List.filter_opt functions in
+      let h = Hashtbl.Poly.create () in
+      List.iter functions ~f:(fun f ->
+          let pos = pos_of_lexpos f.vb_expr.exp_loc.loc_start in
+          Hashtbl.Poly.incr h pos
+        );
+      Some h
 end

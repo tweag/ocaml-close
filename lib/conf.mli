@@ -9,6 +9,7 @@ type expr =
   | Scope_lines
   | File_lines
   | Dist_to_optimal
+  | Functions
 
 type rule =
   | And of rule list
@@ -24,7 +25,7 @@ type rule =
   | Exports_modules
   | Exports_modules_only
 
-type rule_kind = Keep | Remove | To_local | Move | Structure
+type rule_kind = Keep | Remove | Local | Move | Structure
 
 type conf = {
   root : bool;
