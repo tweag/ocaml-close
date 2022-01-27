@@ -218,31 +218,31 @@ module Find = struct
   let location_enclosed ~outer l =
     Location.(position_in outer l.loc_start && position_in outer l.loc_end)
 
-  let enclosing_module vloc t =
-    let open Typedtree in
-    let best_candidate = ref None in
+  let enclosing_structure vlocs t =
+    let best_candidate = ref t in
     let super = Tast_iterator.default_iterator in
-    let module_expr i m =
-      if location_enclosed ~outer:m.mod_loc vloc then begin
-        match !best_candidate with
-        | None -> best_candidate := Some m
-        | Some m' ->
-          if location_enclosed ~outer:m.mod_loc m'.mod_loc then
-            best_candidate := Some m'
+    let structure i s =
+      let str_loc = Extraction.loc s in
+      let all_enclosed = Core_kernel.List.for_all vlocs ~f:(
+          location_enclosed ~outer:str_loc
+        )
+      in
+      if all_enclosed then begin
+        let old_s = !best_candidate in
+        let loc, old_loc = Extraction.(loc s, loc old_s) in
+        if location_enclosed ~outer:old_loc loc then
+          best_candidate := s
       end;
-      super.module_expr i m
+      super.structure i s
     in
-    let it = {super with module_expr} in
+    let it = {super with structure} in
     it.structure it t; !best_candidate
 
   let scope_of_open t op =
     let open Typedtree in
     let loc = op.open_loc in
-    let surround_loc = 
-      match enclosing_module loc t with
-      | None -> Extraction.loc t
-      | Some m -> m.mod_loc
-    in {loc with loc_end = surround_loc.loc_end}
+    let surround_loc = enclosing_structure [loc] t |> Extraction.loc in
+    {loc with loc_end = surround_loc.loc_end}
 
   let scope_lines t op = scope_of_open t op |> lines_of_loc
 end
@@ -317,9 +317,8 @@ module Open_uses = struct
   let compute t o =
     (* Format.printf "%a@." Printtyped.implementation t; *)
     let check_scope =
-      match Find.enclosing_module o.open_loc t with
-      | Some m -> fun loc -> Find.location_enclosed ~outer:m.mod_loc loc
-      | None -> fun _ -> true
+      let oloc = Find.enclosing_structure [o.open_loc] t |> Extraction.loc in
+      fun loc -> Find.location_enclosed ~outer:oloc loc
     in
     let* opath = Open_info.get_path o in
     let rec matches os vs = match os, vs with
