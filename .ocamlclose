@@ -12,6 +12,8 @@
 
    (structure (and (<= symbols 5) (>= uses 15)))
 
+   (local (<= functions 4))
+
    (move (>= dist-to-optimal 40)))
 
-(precedence (keep remove structure move))
+(precedence (keep remove local structure move))

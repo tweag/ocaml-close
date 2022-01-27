@@ -10,6 +10,7 @@ type open_summary = {
   scope_lines : int;
   optimal_pos : pos;
   dist_to_optimal : int;
+  functions : pos list option;
 }[@@deriving show]
 
 let is_module_id id = Char.is_uppercase id.[0]
@@ -33,6 +34,7 @@ let compute_summary tree (t, use_sites) =
     let oloc = Typed.Open_info.get_position t in
     Int.abs (oloc.line - optimal_pos.line)
   in
+  let functions = Option.map (Typed.Open_uses.by_function tree use_sites) ~f:Hashtbl.keys in
   let symbols = Hashtbl.keys h in
   let layer_only =
     Hashtbl.keys h
@@ -44,7 +46,7 @@ let compute_summary tree (t, use_sites) =
   in
   Result.return {module_name = name; total; scope_lines;
                  symbols; layer_only; imports_syntax;
-                 optimal_pos; dist_to_optimal}
+                 optimal_pos; dist_to_optimal; functions}
 
 (* TODO: command to automatically perform the modification *)
 (* TODO: tell on which line is the action *)
@@ -60,7 +62,14 @@ let enact_decision filename sum =
         let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
         Stdio.printf
         "%s: explicitly open values %s from %s\n" filename symbols sum.module_name
-      | _ -> Stdio.printf "%s: unknown decision on open %s\n" filename sum.module_name
+      | Local ->
+        let lines =
+          Option.value_exn sum.functions |> List.map ~f:(fun f -> Printf.sprintf "%d" f.line)
+          |> String.concat ~sep:","
+        in
+        let lines = "[" ^ lines ^ "]" in
+        Stdio.printf "%s: transform open %s to local opens at lines %s\n"
+          filename sum.module_name lines
     )
 
 (* Supports wildcard in module name *)
@@ -84,7 +93,6 @@ let module_name_equal a b =
     String.(List.last_exn pat = "*")
 
 (* TODO: add --explain flag to explain why a rule was applied *)
-(* TODO: implement to_local rule *)
 
 let apply_rule tree rule sum =
   let open Conf in
@@ -95,6 +103,11 @@ let apply_rule tree rule sum =
     | File_lines -> Typed.Extraction.source_lines tree
     | Scope_lines -> sum.scope_lines
     | Dist_to_optimal -> sum.dist_to_optimal
+    | Functions ->
+      begin match sum.functions with
+        | None -> Int.max_value
+        | Some l -> List.length l
+      end
     | Plus (e1, e2) -> eval e1 + eval e2
     | Mult (e1, e2) -> eval e1 * eval e2
     | Minus (e1, e2) -> eval e1 - eval e2
@@ -143,8 +156,8 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
-open Params
 let get_summaries tree params =
+  let open Params in
   let opens = Typed.Open_info.gather tree in
   params.log.change "Analyzing";
   List.map opens ~f:(fun x ->
@@ -156,6 +169,7 @@ let get_summaries tree params =
   |> Result.return
 
 let analyse params filename =
+  let open Params in
   begin
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
@@ -170,6 +184,7 @@ let analyse params filename =
   end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
 
 let execute args filenames =
+  let open Params in
   let total = List.length filenames in
   let bar = Progress_bar.b total in
   let go oreport freport =

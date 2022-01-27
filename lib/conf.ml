@@ -13,6 +13,7 @@ type expr =
   | Scope_lines
   | File_lines
   | Dist_to_optimal
+  | Functions
 [@@deriving sexp_of]
 
 let is_int s = try ignore @@ Int.of_string s; true with _ -> false
@@ -24,6 +25,7 @@ let rec expr_of_sexp =
     | Atom "symbols" -> Symbols
     | Atom "scope-lines" -> Scope_lines
     | Atom "file-lines" -> File_lines
+    | Atom "functions" -> Functions
     | Atom "dist-to-optimal" -> Dist_to_optimal
     | List [Atom "+"; e1; e2] -> Plus (expr_of_sexp e1, expr_of_sexp e2)
     | List [Atom "-"; e1; e2] -> Minus (expr_of_sexp e1, expr_of_sexp e2)
@@ -62,7 +64,7 @@ let rec rule_of_sexp =
     | Atom "exports-modules" -> Exports_modules
     | s -> Stdio.printf "Unexpected token: %s\n" (Sexp.to_string s); failwith "Not a rule"
 
-type rule_kind = Keep | Remove | To_local | Move | Structure
+type rule_kind = Keep | Remove | Local | Move | Structure
 [@@deriving sexp]
 
 type rule_list = (rule_kind * rule) list[@@deriving sexp]
