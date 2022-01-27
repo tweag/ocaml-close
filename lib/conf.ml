@@ -77,8 +77,8 @@ let conf_file_name = ".ocamlclose"
 
 let parse_conf filename =
   try
-    let raw = Sexp.load_sexp filename in
-    Result.return (conf_of_sexp raw)
+    let raw = Sexp.load_sexps filename in
+    Result.return (conf_of_sexp (Sexp.List raw))
   with
   | Sexp.Parse_error {err_msg; _} -> Result.failf "Parse error '%s'" err_msg
   | Failure _ -> Result.failf "File ended too soon"
