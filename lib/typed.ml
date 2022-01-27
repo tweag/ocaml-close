@@ -1,5 +1,4 @@
 open Core
-open Params
 open Utils
 
 let lines_of_loc loc =
@@ -80,6 +79,7 @@ module Extraction = struct
 
   let of_string x = Fpath.of_string x |> norm_error
 
+  open Params
   let find_cmt_location ~params filename =
     let* dune_root = find_dune_root () in
     let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in

@@ -8,6 +8,7 @@ type expr =
   | Symbols
   | Scope_lines
   | File_lines
+  | Dist_to_optimal
 
 type rule =
   | And of rule list

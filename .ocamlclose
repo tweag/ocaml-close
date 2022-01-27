@@ -6,6 +6,5 @@
            exports-modules-only
            (<= scope-lines 40))))
     (remove (<= uses 5))
-    (to_local false)
-    (move false)))
- (precedence (keep remove to_local move)))
+    (move (>= dist-to-optimal 40))))
+ (precedence (keep remove move)))
