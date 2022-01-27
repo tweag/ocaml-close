@@ -9,6 +9,8 @@ type open_summary = {
   layer_only : bool;
   imports_syntax : bool;
   scope_lines : int;
+  optimal_pos : pos;
+  dist_to_optimal : int;
 }[@@deriving show]
 
 let is_module_id id = Char.is_uppercase id.[0]
@@ -27,6 +29,11 @@ let compute_summary tree (t, use_sites) =
   let h = Hashtbl.create (module String) in
   List.map ~f:fst use_sites
   |> List.iter ~f:(Hashtbl.incr h);
+  let optimal_pos = Typed.Open_uses.optimal_global_position tree use_sites in
+  let dist_to_optimal =
+    let oloc = Typed.Open_info.get_position t in
+    Int.abs (oloc.line - optimal_pos.line)
+  in
   let groups = Hashtbl.length h in
   let layer_only =
     Hashtbl.keys h
@@ -37,7 +44,8 @@ let compute_summary tree (t, use_sites) =
     |> List.exists ~f:is_operator_id
   in
   Result.return {module_name = name; total; scope_lines;
-                 groups; layer_only; imports_syntax}
+                 groups; layer_only; imports_syntax;
+                 optimal_pos; dist_to_optimal}
 
 (* TODO: command to automatically perform the modification *)
 (* TODO: tell on which line is the action *)
