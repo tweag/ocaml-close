@@ -65,11 +65,22 @@ let rec rule_of_sexp =
 type rule_kind = Keep | Remove | To_local | Move | Structure
 [@@deriving sexp]
 
+type rule_list = (rule_kind * rule) list[@@deriving sexp]
+
 type conf = {
   root : bool [@sexp.bool]; 
-  rules : (rule_kind * rule) list;
+  rules : rule_list;
   precedence : rule_kind list [@sexp.list];
 }[@@deriving sexp]
+
+(** Simplify syntax *)
+let conf_of_sexpl l =
+  let open Sexp in
+  let l = List.map l ~f:(function
+      | List (Atom "rules" :: r) -> List [Atom "rules"; List r]
+      | s -> s
+  ) in
+  conf_of_sexp (List l)
 
 let default = {root = true; rules = []; precedence = []}
 
@@ -78,7 +89,7 @@ let conf_file_name = ".ocamlclose"
 let parse_conf filename =
   try
     let raw = Sexp.load_sexps filename in
-    Result.return (conf_of_sexp (Sexp.List raw))
+    Result.return (conf_of_sexpl raw)
   with
   | Sexp.Parse_error {err_msg; _} -> Result.failf "Parse error '%s'" err_msg
   | Failure _ -> Result.failf "File ended too soon"
