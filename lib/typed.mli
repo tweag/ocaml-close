@@ -38,11 +38,15 @@ end
 
 (** For gathering the use-sites of an [open Module]. *)
 module Open_uses : sig
+  type use = (string * Location.t)
+
   val compute : Extraction.t -> Open_info.t
-    -> ((string * Location.t) list, string) result
+    -> (use list, string) result
   (** [compute tree op] returns a list of use-sites of [op] in [tree]. Each
       use-site is described by its name (the name of the value/type/... used
       from the opened module) and its location in the source file *)
+
+  val optimal_global_position : Extraction.t -> use list -> Utils.pos
 end
 
 (** For scope-related utils. *)

@@ -159,6 +159,9 @@ let segs_of_path path =
   | `Ok (i, l) -> Result.return (Ident.name i :: l)
   | `Contains_apply -> Result.fail "This module is not a simple identifier"
 
+let pos_of_lexpos lp =
+  Lexing.{line = lp.pos_lnum; col = lp.pos_cnum - lp.pos_bol}
+
 module Open_info = struct
 
   type t = Typedtree.open_declaration
@@ -185,7 +188,7 @@ module Open_info = struct
 
   let get_position (t : t) =
     let Warnings.{loc_start = p; _} = t.open_expr.mod_loc in
-    {line = p.pos_lnum; col = p.pos_cnum - p.pos_bol}
+    pos_of_lexpos p
 
   let get_path (t : t) =
     match (t.open_expr).mod_desc with
@@ -218,6 +221,7 @@ module Find = struct
   let location_enclosed ~outer l =
     Location.(position_in outer l.loc_start && position_in outer l.loc_end)
 
+  (* Find smallest structure in t that contains all locations in vlocs *)
   let enclosing_structure vlocs t =
     let best_candidate = ref t in
     let super = Tast_iterator.default_iterator in
@@ -249,6 +253,7 @@ end
 
 module Open_uses = struct
   open Typedtree
+  type use = (string * Location.t)
 
   (* TODO if nested opens are about the same module,
    * either discard nested ones, recommend to remove
@@ -344,4 +349,30 @@ module Open_uses = struct
     try
       path_iterator t f; Result.return (!uses)
     with Failure e -> Result.fail e
+
+  let optimal_global_position t uses =
+    let use_locs = List.map ~f:snd uses in
+    let closest_structure = Find.enclosing_structure use_locs t in
+    let compare l1 l2 =
+      let open Warnings in
+      Int.compare l1.loc_start.pos_cnum l2.loc_start.pos_cnum
+    in
+    match List.min_elt use_locs ~compare with
+    | None -> pos_of_lexpos (Extraction.loc t).Location.loc_start
+    | Some earliest_use ->
+      let best_res =
+        List.map closest_structure.str_items
+          ~f:(fun s -> s.str_loc)
+        (* Compute distance to earliest use, and keep only items before use *)
+        |> List.filter_map ~f:(fun l ->
+            let open Warnings in
+            let diff = l.loc_start.pos_cnum - earliest_use.loc_start.pos_cnum in
+            if diff > 0 then None
+            else Some (l, -diff)
+          )
+        (* Find element with minimum distance *)
+        |> List.min_elt ~compare:(fun (_, a) (_, b) -> Int.compare a b)
+      in
+      let best_pos = (fst (Option.value_exn best_res)).Location.loc_start
+      in pos_of_lexpos best_pos
 end
