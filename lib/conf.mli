@@ -10,6 +10,7 @@ type expr =
   | File_lines
   | Dist_to_optimal
   | Functions
+  | Name_length
 
 type rule =
   | And of rule list

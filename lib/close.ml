@@ -128,6 +128,7 @@ let apply_rule tree rule sum =
         | None -> Int.max_value
         | Some l -> List.length l
       end
+    | Name_length -> String.length sum.module_name
     | Plus (e1, e2) -> eval e1 + eval e2
     | Mult (e1, e2) -> eval e1 * eval e2
     | Minus (e1, e2) -> eval e1 - eval e2
