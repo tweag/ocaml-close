@@ -250,31 +250,33 @@ module Find = struct
 
   let scope_lines t op = scope_of_open t op |> lines_of_loc
 
-  let enclosing_function vlocs t =
-    let best_candidate = ref None in
+  (* For a list of locations in a tree, return the list of their corresponding
+   * containing functions if it exists *)
+  let enclosing_functions vlocs t =
+    let candidates = List.map vlocs ~f:(fun _ -> ref None) in
     let super = Tast_iterator.default_iterator in
+    let update_one vb current orig_loc =
+      let fn_loc = vb.vb_loc in
+      if location_enclosed ~outer:fn_loc orig_loc then begin
+        match !current with
+        | None -> current := Some vb
+        | Some old_vb ->
+          let old_loc = old_vb.vb_loc in
+          if location_enclosed ~outer:old_loc fn_loc then
+            current := Some vb
+      end
+    in
     let structure_item i si =
       match si.str_desc with
       | Tstr_value (_, vbs) ->
         List.iter vbs ~f:(fun vb ->
-            let fn_loc = vb.vb_loc in
-            let all_enclosed = Core_kernel.List.for_all vlocs ~f:(
-                location_enclosed ~outer:fn_loc
-              )
-            in
-            if all_enclosed then begin
-              match !best_candidate with
-              | None -> best_candidate := Some vb
-              | Some old_vb ->
-                let loc, old_loc = vb.vb_loc, old_vb.vb_loc in
-                if location_enclosed ~outer:old_loc loc then
-                  best_candidate := Some vb
-            end;
+            List.iter2_exn ~f:(update_one vb) candidates vlocs;
           ); super.structure_item i si
       | _ -> super.structure_item i si
     in
     let it = {super with structure_item} in
-    it.structure it t; !best_candidate
+    it.structure it t;
+    List.map candidates ~f:(fun x -> !x)
 
 end
 
@@ -404,7 +406,8 @@ module Open_uses = struct
 
   let by_function t uses =
     let locs = List.map ~f:snd uses in
-    let functions = List.map ~f:(fun l -> Find.enclosing_function [l] t) locs in
+    let functions = Find.enclosing_functions locs t in
+    assert (List.length locs = List.length functions);
     if List.exists functions ~f:Option.is_none then None
     else
       let functions = List.filter_opt functions in
