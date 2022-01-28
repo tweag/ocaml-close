@@ -38,8 +38,8 @@ fields are optional:
 
 ```scheme
 (root)
-(rules RULE+)
-(precedence (KIND+))
+(precedence (KIND*))
+(rules RULE*)
 
 RULE := (KIND PRED)
 KIND := keep | remove | local | move | structure
@@ -55,7 +55,7 @@ PRED :=
     | (<= EXPR EXPR)
     | (= EXPR EXPR)
 EXPR := <number> | symbols | uses | dist-to-optimal
-    | scope-lines | file-lines | functions
+    | scope-lines | file-lines | functions | name-length
     | (+ EXPR EXPR)
     | (- EXPR EXPR)
     | (* EXPR EXPR)
@@ -75,7 +75,6 @@ keep the `open`.
 Below is the configuration file used for this repo, with comments explaining the
 purpose of each line.
 
-An example configuration is
 ```scheme
 (root) ; ocaml-close will not look for .ocamlclose files in parent directories
 
