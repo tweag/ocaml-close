@@ -50,7 +50,14 @@ let compute_summary tree (t, use_sites) =
                  symbols; layer_only; imports_syntax; pos;
                  optimal_pos; dist_to_optimal; functions}
 
-(* TODO: command to automatically perform the modification *)
+(* TODO:
+ * command to automatically perform the modification
+ * potentially look into :
+ *  - https://hannesm.github.io/patch/patch/Patch/index.html
+ *  - https://ocaml.janestreet.com/ocaml-core/latest/doc/patience_diff/Patience_diff_lib__Patience_diff/Hunk/index.html#type-t
+ *  
+ *  to build the diff and perform a patch
+ *)
 let enact_decision filename sum =
   let open Conf in
   let line = sum.pos.line in
