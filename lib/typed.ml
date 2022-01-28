@@ -199,17 +199,6 @@ module Open_info = struct
   let get_name (t : t) =
     let* path = get_path t in
     Result.return (Path.name path)
-
-  let strip_from_name (t : t) str =
-    let vsegs = String.split ~on:'.' str in
-    let* path = get_path t in
-    let* msegs = segs_of_path path in
-    let rec strip mp vp = match mp, vp with
-      | m :: t1, v :: t2 when String.(m = v) -> strip t1 t2
-      | _ :: t1, _ -> strip t1 vp
-      | [], _ -> vp
-    in
-    strip msegs vsegs |> String.concat ~sep:"." |> Result.return
 end
 
 module Find = struct
