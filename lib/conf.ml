@@ -14,6 +14,7 @@ type expr =
   | File_lines
   | Dist_to_optimal
   | Functions
+  | Name_length
 [@@deriving sexp_of]
 
 let is_int s = try ignore @@ Int.of_string s; true with _ -> false
@@ -27,6 +28,7 @@ let rec expr_of_sexp =
     | Atom "file-lines" -> File_lines
     | Atom "functions" -> Functions
     | Atom "dist-to-optimal" -> Dist_to_optimal
+    | Atom "name-length" -> Name_length
     | List [Atom "+"; e1; e2] -> Plus (expr_of_sexp e1, expr_of_sexp e2)
     | List [Atom "-"; e1; e2] -> Minus (expr_of_sexp e1, expr_of_sexp e2)
     | List [Atom "*"; e1; e2] -> Mult (expr_of_sexp e1, expr_of_sexp e2)

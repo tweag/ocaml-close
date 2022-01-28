@@ -8,7 +8,7 @@
          exports-modules-only
          (<= scope-lines 40)))
 
-   (remove (<= uses 5))
+   (remove (and (<= uses 5) (<= name-length 15)))
 
    (structure (and (<= symbols 5) (>= uses 15)))
 
