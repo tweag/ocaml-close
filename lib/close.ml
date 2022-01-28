@@ -3,6 +3,7 @@ open Utils
 
 type open_summary = {
   module_name : string;
+  short_name : string;
   pos : pos;
   total : int;
   symbols : string list;
@@ -27,6 +28,7 @@ let compute_summary tree (t, use_sites) =
   let pos = Typed.Open_info.get_position t in
   let scope_lines = Typed.Find.scope_lines tree t in
   let* name = Typed.Open_info.get_name t in
+  let* short_name = Typed.Open_info.get_short_name t in
   let total = List.length use_sites in
   let h = Hashtbl.create (module String) in
   List.map ~f:fst use_sites
@@ -46,9 +48,9 @@ let compute_summary tree (t, use_sites) =
     Hashtbl.keys h
     |> List.exists ~f:is_operator_id
   in
-  Result.return {module_name = name; total; scope_lines;
-                 symbols; layer_only; imports_syntax; pos;
-                 optimal_pos; dist_to_optimal; functions}
+  Result.return {module_name = name; total; scope_lines; symbols; layer_only;
+                 imports_syntax; pos; short_name; optimal_pos; dist_to_optimal;
+                 functions}
 
 (* TODO:
  * command to automatically perform the modification
@@ -61,7 +63,7 @@ let compute_summary tree (t, use_sites) =
 let enact_decision filename sum =
   let open Conf in
   let line = sum.pos.line in
-  let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.module_name in
+  let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.short_name in
   let print_file () = Stdio.printf "\027[90m%s:\027[0m " filename in
   Progress.interject_with (fun () -> function
       | Keep -> ()

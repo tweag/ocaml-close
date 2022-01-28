@@ -5,12 +5,12 @@ Analyzing...
 Processing ./.test.eobjs/byte/dune__exe__Open_scope.cmt (2/4)
 Fetching...
 Analyzing...
-{ Close.module_name = "Dune__exe.Library.A";
+{ Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   pos = { Utils.line = 4; col = 7 }; total = 1; symbols = ["x"];
   layer_only = false; imports_syntax = false; scope_lines = 3;
   optimal_pos = { Utils.line = 6; col = 2 }; dist_to_optimal = 2;
   functions = (Some [{ Utils.line = 6; col = 10 }]) }
-{ Close.module_name = "Dune__exe.Library.A";
+{ Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   pos = { Utils.line = 1; col = 5 }; total = 3; symbols = ["y"; "x"];
   layer_only = false; imports_syntax = false; scope_lines = 11;
   optimal_pos = { Utils.line = 3; col = 0 }; dist_to_optimal = 2;
