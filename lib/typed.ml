@@ -287,6 +287,8 @@ module Open_uses = struct
    * either discard nested ones, recommend to remove
    * or analyse each independently, and reduce the scope of the outer ones *)
 
+  (* TODO do not count identifiers that are already manually qualified *)
+
   let f_if_constr f t =
     let open Types in
     match t.desc with
