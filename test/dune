@@ -3,7 +3,7 @@
 
 (rule
   (targets tests.output)
-  (deps ../bin/run.exe (alias check))
+  (deps ../bin/run.exe (alias check) ../.ocamlclose)
   (action
     (with-outputs-to tests.output
      (progn
