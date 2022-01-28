@@ -54,19 +54,24 @@ let compute_summary tree (t, use_sites) =
 let enact_decision filename sum =
   let open Conf in
   let line = sum.pos.line in
+  let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.module_name in
+  let print_file () = Stdio.printf "\027[90m%s:\027[0m " filename in
   Progress.interject_with (fun () -> function
       | Keep -> ()
       | Remove ->
-        Stdio.printf "%s: remove open %s (line %d)\n"
-          filename sum.module_name line
+        print_file ();
+        Stdio.printf "remove open %s (line %d)\n" mod_name line
       | Move ->
-        Stdio.printf "%s: move open %s from line %d to line %d\n"
-          filename sum.module_name line sum.optimal_pos.line
+        print_file ();
+        Stdio.printf "move open %s from line %d to line %d\n"
+          mod_name line sum.optimal_pos.line
       | Structure ->
         let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
-        Stdio.printf "%s: explicitly open values %s from %s at line %d\n"
-          filename symbols sum.module_name line
+        print_file ();
+        Stdio.printf "explicitly open values %s from %s at line %d\n"
+          symbols mod_name line
       | Local ->
+        print_file ();
         let lines =
           Option.value_exn sum.functions
           |> List.map ~f:(fun f -> f.line)
@@ -76,8 +81,8 @@ let enact_decision filename sum =
         in
         let lines = "[" ^ lines ^ "]" in
         Stdio.printf
-          "%s: transform open %s (line %d) to local opens at lines %s\n"
-          filename sum.module_name line lines
+          "transform open %s (line %d) to local opens at lines %s\n"
+          mod_name line lines
     )
 
 (* Supports wildcard in module name *)
