@@ -196,9 +196,34 @@ module Open_info = struct
     | Tmod_ident (path, _) -> Result.return path
     | _ -> Result.fail "This module is not a simple identifier"
 
+  let get_ident (t : t) =
+    match (t.open_expr).mod_desc with
+    | Tmod_ident (_, loc) -> Result.return loc.txt
+    | _ -> Result.fail "This module is not a simple identifier"
+
   let get_name (t : t) =
     let* path = get_path t in
     Result.return (Path.name path)
+
+  let get_short_name (t : t) =
+    let* ident = get_ident t in
+    Result.return (Longident.flatten ident |> String.concat ~sep:".")
+    (*
+    let env = t.open_env in
+    let* path = get_path t in
+    let* _segs = segs_of_path path in
+    (
+    if Env.bound_module "Dune__exe" env then
+      Printf.printf "bound !!!!!!\n"
+    else Printf.printf "Non\n"
+  );
+    (*
+    let mo = Env.find_module path env in
+    ignore mo;
+    List.drop_while segs ~f:(fun x -> Env.bound_module x env)
+    |> String.concat ~sep:"." |> Result.return
+       *)
+    Result.return "bonjour"*)
 end
 
 module Find = struct
