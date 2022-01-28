@@ -72,32 +72,47 @@ The minimal configuration is
 If there is no rule or no rule is matched by a file, the default behavior is to
 keep the `open`.
 
+Below is the configuration file used for this repo, with comments explaining the
+purpose of each line.
+
 An example configuration is
 ```scheme
+(root) ; ocaml-close will not look for .ocamlclose files in parent directories
+
+; The order in which rules are matched
+; (e.g., we keep opens matched by the 'keep' rule no matter the other rules)
+(precedence (keep remove local structure move))
+
+; An 'open <X>' statement is...
 (rules
 
+  ; - left untouched if...
   (keep
-     (or (in-list ("Base" "Core"))
-         exports-syntax
-         exports-modules-only
-         (<= scope-lines 40)))
+    ; ...either it is whitelisted, ...
+    (or (in-list ("Base" "Core" "Core_kernel"))
+        ; ...it is used for infix operators, ...
+        exports-syntax
+        ; ...it is only for its exposed submodules, ...
+        exports-modules-only
+        ; ...or its scope is roughly a screen.
+        (<= scope-lines 40)))
 
-   (remove (<= uses 5)))
+  ; - removed, and its uses re-qualified, if...
+  ;   ... it is not used much and X is not too long.
+  (remove (and (<= uses 5) (<= name-length 15)))
 
-(precedence (keep remove))
+  ; - replaced by an explicit structured open, if...
+  ;   ... it exports few different identifiers, which are quite used.
+  (structure (and (<= symbols 5) (>= uses 15)))
 
+  ; - removed and replaced by local 'let open <X> in's if...
+  ;   ... it is used only by only a few functions.
+  (local (<= functions 4))
+
+  ; - moved closer to its first actual use if...
+  ;   ... it is too far from that optimal placement.
+  (move (>= dist-to-optimal 40)))
 ```
-
-The first rule states that an `open` must be kept if it exports infix operators,
-only modules (it is a simple layer), is either the `Base` or `Core` module
-from Jane Street, or has a scope of less then 40 lines (roughly a screen).
-
-The second states that an `open` should be removed if it used in less than 5
-places in the file.
-
-Finally, the configuration states that `keep` takes the priority on `remove`,
-meaning that an `open` that matches the `keep` rule will be kept even if it also
-matches the `remove` rule.
 
 ### Multiple files
 
