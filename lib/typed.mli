@@ -31,9 +31,6 @@ module Open_info : sig
   val get_name : t -> (string, string) result
   (** Try to retrieve the name of an opened module. Will fail if it is not a
       simple identifier (for example a functor application). *)
-
-  val strip_from_name : t -> string -> (string, string) result
-  (** Deprecated *)
 end
 
 (** For gathering the use-sites of an [open Module]. *)
