@@ -60,11 +60,14 @@ let enact_decision filename sum =
           sum.optimal_pos.line
       | Structure ->
         let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
-        Stdio.printf
-        "%s: explicitly open values %s from %s\n" filename symbols sum.module_name
+        Stdio.printf "%s: explicitly open values %s from %s\n"
+          filename symbols sum.module_name
       | Local ->
         let lines =
-          Option.value_exn sum.functions |> List.map ~f:(fun f -> Printf.sprintf "%d" f.line)
+          Option.value_exn sum.functions
+          |> List.map ~f:(fun f -> f.line)
+          |> List.sort ~compare
+          |> List.map ~f:Int.to_string_hum
           |> String.concat ~sep:","
         in
         let lines = "[" ^ lines ^ "]" in
