@@ -3,6 +3,7 @@ open Utils
 
 type open_summary = {
   module_name : string;
+  pos : pos;
   total : int;
   symbols : string list;
   layer_only : bool;
@@ -23,6 +24,7 @@ let is_operator_id id =
     ))
 
 let compute_summary tree (t, use_sites) =
+  let pos = Typed.Open_info.get_position t in
   let scope_lines = Typed.Find.scope_lines tree t in
   let* name = Typed.Open_info.get_name t in
   let total = List.length use_sites in
@@ -45,23 +47,25 @@ let compute_summary tree (t, use_sites) =
     |> List.exists ~f:is_operator_id
   in
   Result.return {module_name = name; total; scope_lines;
-                 symbols; layer_only; imports_syntax;
+                 symbols; layer_only; imports_syntax; pos;
                  optimal_pos; dist_to_optimal; functions}
 
 (* TODO: command to automatically perform the modification *)
-(* TODO: tell on which line is the action *)
 let enact_decision filename sum =
   let open Conf in
+  let line = sum.pos.line in
   Progress.interject_with (fun () -> function
       | Keep -> ()
-      | Remove -> Stdio.printf "%s: remove open %s\n" filename sum.module_name
+      | Remove ->
+        Stdio.printf "%s: remove open %s (line %d)\n"
+          filename sum.module_name line
       | Move ->
-        Stdio.printf "%s: move open %s to line %d\n" filename sum.module_name
-          sum.optimal_pos.line
+        Stdio.printf "%s: move open %s from line %d to line %d\n"
+          filename sum.module_name line sum.optimal_pos.line
       | Structure ->
         let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
-        Stdio.printf "%s: explicitly open values %s from %s\n"
-          filename symbols sum.module_name
+        Stdio.printf "%s: explicitly open values %s from %s at line %d\n"
+          filename symbols sum.module_name line
       | Local ->
         let lines =
           Option.value_exn sum.functions
@@ -71,8 +75,9 @@ let enact_decision filename sum =
           |> String.concat ~sep:","
         in
         let lines = "[" ^ lines ^ "]" in
-        Stdio.printf "%s: transform open %s to local opens at lines %s\n"
-          filename sum.module_name lines
+        Stdio.printf
+          "%s: transform open %s (line %d) to local opens at lines %s\n"
+          filename sum.module_name line lines
     )
 
 (* Supports wildcard in module name *)
