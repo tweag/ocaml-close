@@ -37,12 +37,12 @@ The configuration has the following grammar, where `root` and `precedence`
 fields are optional:
 
 ```scheme
-((root)
- (rules (RULE+))
- (precedence (KIND+)))
+(root)
+(rules RULE+)
+(precedence (KIND+))
 
 RULE := (KIND PRED)
-KIND := keep | remove | to_local | move
+KIND := keep | remove | local | move | structure
 PRED :=
     | true
     | false
@@ -54,7 +54,8 @@ PRED :=
     | (>= EXPR EXPR)
     | (<= EXPR EXPR)
     | (= EXPR EXPR)
-EXPR := <number> | symbols | uses | scope-lines | file-lines
+EXPR := <number> | symbols | uses | dist-to-optimal
+    | scope-lines | file-lines | functions
     | (+ EXPR EXPR)
     | (- EXPR EXPR)
     | (* EXPR EXPR)
@@ -65,7 +66,7 @@ EXPR := <number> | symbols | uses | scope-lines | file-lines
 
 The minimal configuration is
 ```scheme
-((rules ()) (precedence ()))
+(rules)
 ```
 
 If there is no rule or no rule is matched by a file, the default behavior is to
@@ -73,24 +74,26 @@ keep the `open`.
 
 An example configuration is
 ```scheme
-((rules
-   ((keep
-      (or ((in-list ("Base" "Core"))
-           exports-syntax
-           exports-modules-only)))
-    (remove
-      (or ((<= symbols 4)
-           (<= uses 10))))))
- (precedence (keep remove)))
+(rules
+
+  (keep
+     (or (in-list ("Base" "Core"))
+         exports-syntax
+         exports-modules-only
+         (<= scope-lines 40)))
+
+   (remove (<= uses 5)))
+
+(precedence (keep remove))
+
 ```
 
 The first rule states that an `open` must be kept if it exports infix operators,
-only modules (it is a simple layer) or is either the `Base` or `Core` module
-from Jane Street.
+only modules (it is a simple layer), is either the `Base` or `Core` module
+from Jane Street, or has a scope of less then 40 lines (roughly a screen).
 
-The second states that an `open` should be removed if it used in less than 10
-places in the file or if the total number of used symbols from that module is
-less then 4.
+The second states that an `open` should be removed if it used in less than 5
+places in the file.
 
 Finally, the configuration states that `keep` takes the priority on `remove`,
 meaning that an `open` that matches the `keep` rule will be kept even if it also
@@ -116,7 +119,7 @@ For example, given the following directory tree:
 └── .ocamlclose
 ```
 
-If `foo/.ocamlclose` contains `((rules ((keep (in-list ("Bar"))))))` then an
+If `foo/.ocamlclose` contains `(rules (keep (in-list ("Bar"))))` then an
 `open Bar` will always be kept for all files in `foo/` and its subdirectories.
 
 ## Known limitations
