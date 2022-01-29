@@ -37,7 +37,8 @@ end
 
 (** For gathering the use-sites of an [open Module]. *)
 module Open_uses : sig
-  type use = (string * Location.t)
+  type use_loc
+  type use = (string * use_loc)
 
   val compute : Extraction.t -> Open_info.t
     -> (use list, string) result
@@ -55,6 +56,9 @@ module Open_uses : sig
       in [tree] by their containing function.
   *)
 end
+
+val chunk_of_loc : Open_uses.use_loc -> Utils.chunk
+(** [chunk_of_loc loc] returns the equivalent chunk of a compiler loc *)
 
 (** For scope-related utils. *)
 module Find : sig

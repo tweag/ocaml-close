@@ -13,6 +13,7 @@ type open_summary = {
   optimal_pos : pos;
   dist_to_optimal : int;
   functions : pos list option;
+  use_sites : pos list;
 }[@@deriving show]
 
 let is_module_id id = Char.is_uppercase id.[0]
@@ -39,6 +40,10 @@ let compute_summary tree (t, use_sites) =
     Int.abs (opos.line - optimal_pos.line)
   in
   let functions = Option.map (Typed.Open_uses.by_function tree use_sites) ~f:Hashtbl.keys in
+  let use_sites = List.map use_sites ~f:(fun loc ->
+      (Typed.chunk_of_loc (snd loc)).ch_begin
+    )
+  in
   let symbols = Hashtbl.keys h in
   let layer_only =
     Hashtbl.keys h
@@ -50,7 +55,7 @@ let compute_summary tree (t, use_sites) =
   in
   Result.return {module_name = name; total; scope_lines; symbols; layer_only;
                  imports_syntax; chunk; short_name; optimal_pos; dist_to_optimal;
-                 functions}
+                 functions; use_sites}
 
 (* TODO:
  * command to automatically perform the modification
@@ -100,11 +105,19 @@ let patch_of_decision filename sum decision =
   | Local -> 
     let patch = Patch.delete ~chunk:sum.chunk patch in
     let locs = Option.value_exn sum.functions in
+    let to_insert = Printf.sprintf "let open %s in" sum.short_name in
     List.fold locs ~init:patch ~f:(fun patch pos ->
-        Patch.insert ~newline:true sum.short_name ~at:pos patch
+        Patch.insert ~newline:true to_insert ~at:pos patch
       )
-  | Remove -> patch (* TODO *)
-  | Structure -> patch (* TODO *)
+  | Remove ->
+    let patch = Patch.delete ~chunk:sum.chunk patch in
+    List.fold sum.use_sites ~init:patch ~f:(fun patch pos ->
+        Patch.insert sum.short_name ~at:pos patch
+      )
+  | Structure ->
+    Stdio.printf "WARNING: transformation into explicit structures cannot yet
+    be automatically applied";
+    patch (* TODO, must know if uses are values, modules, types *)
 
 (* Supports wildcard in module name *)
 let module_name_equal a b =

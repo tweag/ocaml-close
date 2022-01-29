@@ -17,3 +17,6 @@ let insert ?(newline=false) ~at what t =
 let empty filename = {actions = []; filename}[@@deriving show]
 
 let is_empty t = Base.List.is_empty t.actions
+
+(* TODO: when applying insert, DO NOT apply if string already exist at this
+ * place *)
