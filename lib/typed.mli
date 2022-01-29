@@ -25,7 +25,7 @@ module Open_info : sig
   val gather : Extraction.t -> t list
   (** Return the list of global opens in a tree *)
 
-  val get_position : t -> Utils.pos
+  val get_chunk : t -> Utils.chunk
   (** Get the position of an open in the source file *)
 
   val get_name : t -> (string, string) result

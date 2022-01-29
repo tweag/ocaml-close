@@ -32,6 +32,7 @@ let find_file_s ?containing_folder name src =
   Result.return (Fpath.to_string found)
 
 type pos = {line : int ; col : int}[@@deriving show]
+type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show]
 
 let map_result ~f l = 
   List.map ~f l |> Result.combine_errors |> Result.map_error ~f:(List.hd_exn)
