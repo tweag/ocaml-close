@@ -114,10 +114,10 @@ let patch_of_decision filename sum decision =
     List.fold sum.use_sites ~init:patch ~f:(fun patch pos ->
         Patch.insert sum.short_name ~at:pos patch
       )
-  | Structure ->
-    Stdio.printf "WARNING: transformation into explicit structures cannot yet
-    be automatically applied";
-    patch (* TODO, must know if uses are values, modules, types *)
+  | Structure -> 
+    Patch.invalid "transformation into explicit structures
+    cannot yet be automatically applied"
+    (* TODO, must know if uses are values, modules, types *)
 
 (* Supports wildcard in module name *)
 let module_name_equal a b =
