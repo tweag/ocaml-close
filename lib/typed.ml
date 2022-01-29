@@ -187,9 +187,11 @@ module Open_info = struct
     let f o = l := o :: !l in
     iterator t f; !l
 
-  let get_position (t : t) =
-    let Warnings.{loc_start = p; _} = t.open_expr.mod_loc in
-    pos_of_lexpos p
+  let get_chunk (t : t) =
+    let Warnings.{loc_start; loc_end; _} = t.open_loc in
+    let ch_begin = pos_of_lexpos loc_start in
+    let ch_end = pos_of_lexpos loc_end in
+    {ch_begin; ch_end}
 
   let get_path (t : t) =
     match (t.open_expr).mod_desc with
@@ -292,6 +294,18 @@ module Find = struct
     it.structure it t;
     List.map candidates ~f:(fun x -> !x)
 
+  (* Find the first sub-expression that does not have a ghost location *)
+  let first_real_expression exp =
+    let found = ref None in
+    let super = Tast_iterator.default_iterator in
+    let expr it expr =
+      if expr.exp_loc.loc_ghost then
+        super.expr it expr
+      else found := Some expr
+    in
+    let it = {super with expr} in
+    it.expr it exp;
+    Option.value_exn !found
 end
 
 module Open_uses = struct
@@ -421,15 +435,17 @@ module Open_uses = struct
       in pos_of_lexpos best_pos
 
   let by_function t uses =
+    (* try to find first non-ghost expression to have the right pos *)
     let locs = List.map ~f:snd uses in
     let functions = Find.enclosing_functions locs t in
-    assert (List.length locs = List.length functions);
     if List.exists functions ~f:Option.is_none then None
     else
       let functions = List.filter_opt functions in
       let h = Hashtbl.Poly.create () in
       List.iter functions ~f:(fun f ->
-          let pos = pos_of_lexpos f.vb_expr.exp_loc.loc_start in
+          (* Find first position after '=' *)
+          let expr = Find.first_real_expression f.vb_expr in
+          let pos = pos_of_lexpos expr.exp_loc.loc_start in
           Hashtbl.Poly.incr h pos
         );
       Some h

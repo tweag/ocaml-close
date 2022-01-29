@@ -4,7 +4,7 @@ open Utils
 type open_summary = {
   module_name : string;
   short_name : string;
-  pos : pos;
+  chunk : chunk;
   total : int;
   symbols : string list;
   layer_only : bool;
@@ -25,7 +25,7 @@ let is_operator_id id =
     ))
 
 let compute_summary tree (t, use_sites) =
-  let pos = Typed.Open_info.get_position t in
+  let chunk = Typed.Open_info.get_chunk t in
   let scope_lines = Typed.Find.scope_lines tree t in
   let* name = Typed.Open_info.get_name t in
   let* short_name = Typed.Open_info.get_short_name t in
@@ -35,8 +35,8 @@ let compute_summary tree (t, use_sites) =
   |> List.iter ~f:(Hashtbl.incr h);
   let optimal_pos = Typed.Open_uses.optimal_global_position tree use_sites in
   let dist_to_optimal =
-    let oloc = Typed.Open_info.get_position t in
-    Int.abs (oloc.line - optimal_pos.line)
+    let opos = chunk.ch_begin in
+    Int.abs (opos.line - optimal_pos.line)
   in
   let functions = Option.map (Typed.Open_uses.by_function tree use_sites) ~f:Hashtbl.keys in
   let symbols = Hashtbl.keys h in
@@ -49,20 +49,15 @@ let compute_summary tree (t, use_sites) =
     |> List.exists ~f:is_operator_id
   in
   Result.return {module_name = name; total; scope_lines; symbols; layer_only;
-                 imports_syntax; pos; short_name; optimal_pos; dist_to_optimal;
+                 imports_syntax; chunk; short_name; optimal_pos; dist_to_optimal;
                  functions}
 
 (* TODO:
  * command to automatically perform the modification
- * potentially look into :
- *  - https://hannesm.github.io/patch/patch/Patch/index.html
- *  - https://ocaml.janestreet.com/ocaml-core/latest/doc/patience_diff/Patience_diff_lib__Patience_diff/Hunk/index.html#type-t
- *  
- *  to build the diff and perform a patch
  *)
 let enact_decision filename sum =
   let open Conf in
-  let line = sum.pos.line in
+  let line = sum.chunk.ch_begin.line in
   let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.short_name in
   let print_file () = Stdio.printf "\027[90m%s:\027[0m " filename in
   Progress.interject_with (fun () -> function
@@ -93,6 +88,23 @@ let enact_decision filename sum =
           "transform open %s (line %d) to local opens at lines %s\n"
           mod_name line lines
     )
+
+let patch_of_decision filename sum decision =
+  let open Conf in
+  let patch = Patch.empty filename in
+  match decision with
+  | Keep -> patch
+  | Move ->
+    Patch.insert ~newline:true sum.short_name ~at:sum.optimal_pos patch
+    |> Patch.delete ~chunk:sum.chunk
+  | Local -> 
+    let patch = Patch.delete ~chunk:sum.chunk patch in
+    let locs = Option.value_exn sum.functions in
+    List.fold locs ~init:patch ~f:(fun patch pos ->
+        Patch.insert ~newline:true sum.short_name ~at:pos patch
+      )
+  | Remove -> patch (* TODO *)
+  | Structure -> patch (* TODO *)
 
 (* Supports wildcard in module name *)
 let module_name_equal a b =
@@ -130,7 +142,7 @@ let apply_rule tree rule sum =
         | None -> Int.max_value
         | Some l -> List.length l
       end
-    | Name_length -> String.length sum.module_name
+    | Name_length -> String.length sum.short_name
     | Plus (e1, e2) -> eval e1 + eval e2
     | Mult (e1, e2) -> eval e1 * eval e2
     | Minus (e1, e2) -> eval e1 - eval e2
@@ -162,7 +174,10 @@ let make_decision filename tree conf sum =
         | None | Some false -> acc
         | Some true -> kind
       ) in
-  enact_decision filename sum decision
+  enact_decision filename sum decision;
+  let patch = patch_of_decision filename sum decision in
+  if not @@ Patch.is_empty patch then
+    Stdio.printf "Patch: %s\n" (Patch.show patch)
 
 module Progress_bar = struct
   open Progress

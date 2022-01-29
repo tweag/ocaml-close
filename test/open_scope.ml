@@ -6,6 +6,6 @@ module M = struct
   let _ = x
 end
 
-let use_a = x; y
+let use_a _ _ = x; y
 
 let link () = ()
