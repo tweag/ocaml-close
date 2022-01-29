@@ -164,6 +164,12 @@ let segs_of_path path =
 let pos_of_lexpos lp =
   Lexing.{line = lp.pos_lnum; col = lp.pos_cnum - lp.pos_bol}
 
+let chunk_of_loc loc = 
+  let Warnings.{loc_start; loc_end; _} = loc in
+  let ch_begin = pos_of_lexpos loc_start in
+  let ch_end = pos_of_lexpos loc_end in
+  {ch_begin; ch_end}
+
 module Open_info = struct
 
   type t = open_declaration
@@ -187,11 +193,7 @@ module Open_info = struct
     let f o = l := o :: !l in
     iterator t f; !l
 
-  let get_chunk (t : t) =
-    let Warnings.{loc_start; loc_end; _} = t.open_loc in
-    let ch_begin = pos_of_lexpos loc_start in
-    let ch_end = pos_of_lexpos loc_end in
-    {ch_begin; ch_end}
+  let get_chunk (t : t) = chunk_of_loc t.open_loc
 
   let get_path (t : t) =
     match (t.open_expr).mod_desc with
@@ -309,7 +311,8 @@ module Find = struct
 end
 
 module Open_uses = struct
-  type use = (string * Location.t)
+  type use_loc = Location.t
+  type use = (string * use_loc)
 
   (* TODO if nested opens are about the same module,
    * either discard nested ones, recommend to remove
