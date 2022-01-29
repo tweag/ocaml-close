@@ -30,3 +30,35 @@ let is_empty = function Valid t -> Base.List.is_empty t.actions | _ -> true
 
 (* TODO: when applying insert, DO NOT apply if string already exist at this
  * place *)
+
+(* TODO: allow to merge patches when there are multiple actions on same file *)
+
+(* TODO: manage multiple edits on same line. with trie ? *)
+
+(* TODO: delete lines that end up empty after delete *)
+
+open Base
+
+let apply_single lines = function
+  | Delete chunk ->
+    let line_no = chunk.ch_begin.line in
+    let line = lines.(line_no - 1) in
+    let before = String.prefix line chunk.ch_begin.col in
+    let after = String.drop_prefix line chunk.ch_end.col in
+    lines.(line_no - 1) <- before ^ after
+  | Insert {what; where; newline} ->
+    let line_no = where.line in
+    let line = lines.(line_no - 1) in
+    let before = String.prefix line where.col in
+    let after = String.drop_prefix line where.col in
+    let newline = if newline then "\n" else "" in
+    lines.(line_no - 1) <- before ^ what ^ newline ^ after
+
+let apply = function
+  | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
+  | Valid {actions; filename} ->
+    let out_filename = filename ^ ".suggested.ml" in
+    let lines = Array.of_list @@ Stdio.In_channel.read_lines filename in
+    List.iter ~f:(apply_single lines) actions;
+    Stdio.Out_channel.write_lines out_filename (Array.to_list lines);
+    Result.return ()
