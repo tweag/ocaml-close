@@ -113,8 +113,9 @@ let patch_of_decision filename sum decision =
       )
   | Remove ->
     let patch = Patch.delete ~chunk:sum.chunk patch in
+    let to_insert = sum.short_name ^ "." in
     List.fold sum.use_sites ~init:patch ~f:(fun patch pos ->
-        Patch.insert sum.short_name ~at:pos patch
+        Patch.insert to_insert ~at:pos patch
       )
   | Structure -> 
     Patch.invalid "transformation into explicit structures
