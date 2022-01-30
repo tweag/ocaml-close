@@ -339,6 +339,14 @@ module Open_uses = struct
         f Warnings.{loc with loc_ghost = true}
       else f loc
     in
+    (* explicit type annotation *)
+    let typ it typ =
+      let f = f typ.ctyp_loc in
+      begin match typ.ctyp_desc with
+      | Ttyp_constr (path, _, _) -> f path
+      | _ -> ()
+      end; super.typ it typ
+    in
     let pat (type k) it (p : k general_pattern) =
       let f = f p.pat_loc in
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
@@ -396,15 +404,12 @@ module Open_uses = struct
         | _ -> ()
       end; super.structure_item it si
     in
-    let it = {super with expr; pat; module_expr;
+    let it = {super with expr; pat; module_expr; typ;
                          module_type; structure_item}
     in it.structure it t
 
 
   let compute t o =
-    (* TODO A use site should be ghosted if it has the same location as a type
-     * with an attribute (it
-     * means we are probably deriving something... *)
     (* Format.printf "%a@." Printtyped.implementation t; *)
     let check_scope =
       let oloc = Find.enclosing_structure [o.open_loc] t |> Extraction.loc in
@@ -469,15 +474,21 @@ module Open_uses = struct
     else
       let functions = List.filter_opt functions in
       let h = Hashtbl.Poly.create () in
-      List.iter functions ~f:(fun f ->
+      let ok = ref true in
+      List.iter2_exn locs functions ~f:(fun loc f ->
           (* Find first position after '=' *)
           match Find.first_real_expression f.vb_expr with
           | Some expr ->
-            let pos = pos_of_lexpos expr.exp_loc.loc_start in
-            Hashtbl.Poly.incr h pos
-          | None -> ()
+            (* Bail out if that location does not contain our use anymore... *)
+            if Find.location_enclosed ~outer:expr.exp_loc loc then
+              let pos = pos_of_lexpos expr.exp_loc.loc_start in
+              Hashtbl.Poly.incr h pos
+            else ok := false
+          | None ->
+            (* Or if the location is completely ghost *)
+            ok := false
         );
-      Some h
+      if !ok then Some h else None
 
   let has_ghost_uses uses =
     List.exists uses ~f:(fun (_, loc) -> loc.Warnings.loc_ghost)
