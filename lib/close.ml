@@ -102,7 +102,8 @@ let patch_of_decision filename sum decision =
   match decision with
   | Keep -> patch
   | Move ->
-    Patch.insert ~newline:true sum.short_name ~at:sum.optimal_pos patch
+    let to_insert = "open " ^ sum.short_name in
+    Patch.insert ~newline:true to_insert ~at:sum.optimal_pos patch
     |> Patch.delete ~chunk:sum.chunk
   | Local -> 
     let patch = Patch.delete ~chunk:sum.chunk patch in
