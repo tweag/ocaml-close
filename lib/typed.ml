@@ -306,8 +306,7 @@ module Find = struct
       else found := Some expr
     in
     let it = {super with expr} in
-    it.expr it exp;
-    Option.value_exn !found
+    it.expr it exp; !found
 end
 
 module Open_uses = struct
@@ -472,9 +471,11 @@ module Open_uses = struct
       let h = Hashtbl.Poly.create () in
       List.iter functions ~f:(fun f ->
           (* Find first position after '=' *)
-          let expr = Find.first_real_expression f.vb_expr in
-          let pos = pos_of_lexpos expr.exp_loc.loc_start in
-          Hashtbl.Poly.incr h pos
+          match Find.first_real_expression f.vb_expr with
+          | Some expr ->
+            let pos = pos_of_lexpos expr.exp_loc.loc_start in
+            Hashtbl.Poly.incr h pos
+          | None -> ()
         );
       Some h
 
