@@ -128,6 +128,8 @@ let delete_many_orig ~pos ~length t =
     delete ~orig_pos:true ~pos:i t |> ignore
   done
 
+let is_original t = String.equal (contents t) t.original
+
 let print_seq t = Stdio.printf "'%s'\n" (contents t)
 
 let%expect_test "simple deletes" =
