@@ -5,6 +5,7 @@ type open_summary = {
   module_name : string;
   short_name : string;
   chunk : chunk;
+  ghost_use : bool;
   total : int;
   symbols : string list;
   layer_only : bool;
@@ -34,6 +35,7 @@ let compute_summary tree (t, use_sites) =
   let h = Hashtbl.create (module String) in
   List.map ~f:fst use_sites
   |> List.iter ~f:(Hashtbl.incr h);
+  let ghost_use = Typed.Open_uses.has_ghost_uses use_sites in
   let optimal_pos = Typed.Open_uses.optimal_global_position tree use_sites in
   let dist_to_optimal =
     let opos = chunk.ch_begin in
@@ -55,7 +57,7 @@ let compute_summary tree (t, use_sites) =
   in
   Result.return {module_name = name; total; scope_lines; symbols; layer_only;
                  imports_syntax; chunk; short_name; optimal_pos; dist_to_optimal;
-                 functions; use_sites}
+                 functions; use_sites; ghost_use}
 
 (* TODO:
  * command to automatically perform the modification
@@ -174,6 +176,7 @@ let apply_rule tree rule sum =
     | Exports_syntax -> sum.imports_syntax
     | Exports_modules -> failwith "Exports_modules not yet implemented"
     | Exports_modules_only -> sum.layer_only
+    | Ghost_use -> sum.ghost_use
   in apply rule
 
 let make_decision filename tree conf sum =

@@ -332,7 +332,14 @@ module Open_uses = struct
 
   let path_iterator t f =
     let super = Tast_iterator.default_iterator in
-
+    let attributed_types_locs = ref [] in
+    let f loc =
+      (* Mark locations that are the same as attributed types as ghost, since
+         they probably correspond to PPX locations *)
+      if List.mem !attributed_types_locs loc ~equal:Poly.equal then
+        f Warnings.{loc with loc_ghost = true}
+      else f loc
+    in
     let pat (type k) it (p : k general_pattern) =
       let f = f p.pat_loc in
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
@@ -349,20 +356,22 @@ module Open_uses = struct
     in
     let expr it e =
       let f = f e.exp_loc in
-      begin match e.exp_desc with
-        | Texp_instvar (path1, path2, _) -> f path1; f path2
-        | Texp_ident (path, _, _)
-        | Texp_new (path, _, _) 
-        | Texp_override (path, _)
-        | Texp_extension_constructor (_, path) -> f path
-        | Texp_letop {let_; _} -> f let_.bop_op_path
-        | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
-        | Texp_field (_, _, lab_desc)
-        | Texp_setfield (_, _, lab_desc, _) -> check_label f lab_desc
-        | Texp_record {fields; _} ->
-          Array.iter fields ~f:(fun (lab_desc, _) -> check_label f lab_desc)
-        | _ -> ()
-      end; super.expr it e
+      if List.is_empty e.exp_attributes then
+        begin match e.exp_desc with
+          | Texp_instvar (path1, path2, _) -> f path1; f path2
+          | Texp_ident (path, _, _)
+          | Texp_new (path, _, _) 
+          | Texp_override (path, _)
+          | Texp_extension_constructor (_, path) -> f path
+          | Texp_letop {let_; _} -> f let_.bop_op_path
+          | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
+          | Texp_field (_, _, lab_desc)
+          | Texp_setfield (_, _, lab_desc, _) -> check_label f lab_desc
+          | Texp_record {fields; _} ->
+            Array.iter fields ~f:(fun (lab_desc, _) -> check_label f lab_desc)
+          | _ -> ()
+        end;
+      super.expr it e
     in
     let module_expr it m =
       begin match m.mod_desc with
@@ -376,11 +385,27 @@ module Open_uses = struct
         | _ -> ()
       end; super.module_type it m
     in
-    let it = {super with expr; pat; module_expr; module_type} in
-    it.structure it t
+    (* Gather the locs of all types that have attributes,
+       as a heuristic for detecting PPX deriving *)
+    let structure_item it si =
+      begin match si.str_desc with
+        | Tstr_type (_, typs) ->
+          List.iter typs ~f:(fun typ ->
+              if not @@ List.is_empty typ.typ_attributes then
+                attributed_types_locs := typ.typ_loc :: !attributed_types_locs
+            )
+        | _ -> ()
+      end; super.structure_item it si
+    in
+    let it = {super with expr; pat; module_expr;
+                         module_type; structure_item}
+    in it.structure it t
 
 
   let compute t o =
+    (* TODO A use site should be ghosted if it has the same location as a type
+     * with an attribute (it
+     * means we are probably deriving something... *)
     (* Format.printf "%a@." Printtyped.implementation t; *)
     let check_scope =
       let oloc = Find.enclosing_structure [o.open_loc] t |> Extraction.loc in
@@ -452,4 +477,7 @@ module Open_uses = struct
           Hashtbl.Poly.incr h pos
         );
       Some h
+
+  let has_ghost_uses uses =
+    List.exists uses ~f:(fun (_, loc) -> loc.Warnings.loc_ghost)
 end
