@@ -51,8 +51,11 @@ let apply_single lines = function
     let line = lines.(line_no - 1) in
     let before = String.prefix line where.col in
     let after = String.drop_prefix line where.col in
-    let newline = if newline then "\n" else "" in
-    lines.(line_no - 1) <- before ^ what ^ newline ^ after
+    let final = if newline then
+        before ^ what ^ "\n" ^ (String.make (String.length before) ' ') ^ after
+      else before ^ what ^ after
+    in
+    lines.(line_no - 1) <- final
 
 let apply = function
   | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
