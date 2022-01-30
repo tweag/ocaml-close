@@ -15,6 +15,8 @@
         exports-syntax
         ; ...it is only for its exposed submodules, ...
         exports-modules-only
+        ; ...it is not explicitly used (probably by a ppx), ...
+        ghost-use
         ; ...or its scope is roughly a screen.
         (<= scope-lines 40)))
 

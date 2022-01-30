@@ -53,8 +53,11 @@ module Open_uses : sig
 
   val by_function : Extraction.t -> use list -> (Utils.pos, int) Base.Hashtbl.t option
   (** [by_function tree uses] returns a categorization of the [uses] of an open
-      in [tree] by their containing function.
-  *)
+      in [tree] by their containing function. *)
+
+  val has_ghost_uses : use list -> bool
+  (** Checks if one of the use sites is a ghost location (usually because of a PPX
+      pass *)
 end
 
 val chunk_of_loc : Open_uses.use_loc -> Utils.chunk
