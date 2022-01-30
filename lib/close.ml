@@ -194,7 +194,9 @@ let make_decision filename tree conf sum =
   enact_decision filename sum decision;
   let patch = patch_of_decision filename sum decision in
   if not @@ Patch.is_empty patch then (
+    (*
     Stdio.printf "Patch: %s\n" (Patch.show patch);
+       *)
     Patch.apply patch
   )
   else Result.return ()
