@@ -15,14 +15,12 @@
         exports-syntax
         ; ...it is only for its exposed submodules, ...
         exports-modules-only
-        ; ...it is not explicitly used (probably by a ppx), ...
-        ghost-use
         ; ...or its scope is roughly a screen.
         (<= scope-lines 40)))
 
   ; - removed, and its uses re-qualified, if...
-  ;   ... it is not used much and X is not too long.
-  (remove (and (<= uses 5) (<= name-length 15)))
+  ;   ... it is not used much and X is not too long and can be qualified easily.
+  (remove (and (<= uses 5) (<= name-length 15) (not ghost-use)))
 
   ; - replaced by an explicit structured open, if...
   ;   ... it exports few different identifiers, which are quite used.
