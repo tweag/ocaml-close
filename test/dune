@@ -10,7 +10,7 @@
        (pipe-stdout
          (run find)
          (run grep cmt)
-         (run xargs ../bin/run.exe -r text -b list-only))))))
+         (run xargs ../bin/run.exe dump -r text))))))
 
 (rule
   (alias runtest)
