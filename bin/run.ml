@@ -29,6 +29,12 @@ let conf_file =
   in
   Arg.(value & opt (some file) None & info ~env ["c"; "conf"] ~doc)
 
+let patch_file =
+  let doc =
+    "Filename used as either input or output for the patch file."
+  in
+  Arg.(value & opt (some string) None & info ["p"; "patch"] ~doc)
+
 let skip_absent =
   let doc = "Do not try to build a .cmt file from a .ml file if it does not
   exist, and skip the file instead." in
@@ -52,17 +58,17 @@ let info =
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
 let pack_args command report conf_file
-    skip_absent silence_errors verbose =
+    skip_absent silence_errors verbose patch_file =
   let open Closelib in
   Utils.{report; conf_file; skip_absent; silence_errors;
-         command; verbose}
+         command; verbose; patch_file}
 
 let common_options behavior =
   let open Term in
   let open Closelib in
   let args =
     const pack_args $ (const behavior) $ report $ conf_file $ skip_absent
-    $ silence_errors $ verbose
+    $ silence_errors $ verbose $ patch_file
   in
   let applied = const Close.execute $ args $ filenames in
   term_result applied
@@ -79,7 +85,13 @@ let dump =
 
 let patch =
   let doc = "Try to patch files according to the computed recommendations." in
-  (common_options `Patch, Term.info "patch" ~doc)
+  let filename =
+    let doc = "File of the saved patches." in
+    Arg.(required & pos 0 (some file) None & info [] ~docv:"PATCH_FILE" ~doc)
+  in
+  let term = Term.(const Closelib.Patch.apply_saved $ filename)
+             |> Term.term_result in
+  (term, Term.info "patch" ~doc)
 
 let clean =
   let doc = "Clean all .suggested files." in

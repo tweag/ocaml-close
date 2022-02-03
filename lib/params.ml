@@ -31,10 +31,10 @@ module Log = struct
         debug = debug verbose kind}
 end
 
-
 type t = {
   command : Utils.command;
   conf : string -> Conf.conf;
+  patch_file : string;
   skip_absent : bool;
   silence_errors : bool;
   log : Log.t;
@@ -42,5 +42,12 @@ type t = {
 
 let of_args (t : Utils.args) info =
   let conf = Conf.read_conf ?conf_file:t.conf_file in
-  {conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
-   command = t.command; log = Log.make t.report info t.verbose}
+  let patch_file = match t.patch_file with
+    | None -> Filename.temp_file "patch" ".close"
+    | Some x -> x
+  in
+  {
+    conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
+    command = t.command; log = Log.make t.report info t.verbose;
+    patch_file
+  }

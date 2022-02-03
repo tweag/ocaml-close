@@ -1,15 +1,18 @@
 open Core
 
-type command = [`Lint | `Dump | `Patch]
+type command = [`Lint | `Dump]
 
 type args = {
   command : command;
   report : [`Bar | `Text | `None];
   conf_file : string option;
+  patch_file : string option;
   skip_absent : bool;
   silence_errors : bool;
   verbose : bool;
 }
+
+type 'a res = ('a, string) Result.t
 
 let (let*) = Stdlib.Result.bind
 let filter_errors = Result.map_error ~f:(fun m -> `Msg m)
@@ -33,8 +36,8 @@ let find_file_s ?containing_folder name src =
   let* found = find_file ?containing_folder name srcf in
   Result.return (Fpath.to_string found)
 
-type pos = {line : int ; col : int}[@@deriving show]
-type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show]
+type pos = {line : int ; col : int}[@@deriving show, sexp]
+type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show, sexp]
 
 let map_result ~f l = 
   List.map ~f l |> Result.combine_errors |> Result.map_error ~f:(List.hd_exn)

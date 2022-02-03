@@ -1,14 +1,23 @@
 open Utils
+open Core
 
 type single =
   | Delete of chunk
   | Insert of {what : string; where : pos; newline : bool}
-[@@deriving show]
+[@@deriving show, sexp]
 
 type t =
   | Valid of {actions : single list; filename : string}
   | Invalid of string
-[@@deriving show]
+[@@deriving show, sexp]
+
+let merge t1 t2 = match t1, t2 with
+  | Valid t1, Valid t2 ->
+    if String.(t1.filename <> t2.filename) then
+      Invalid "Merging patches for two different files"
+    else
+      Valid {t1 with actions = t1.actions @ t2.actions}
+  | _ -> Invalid "Merging invalid patches"
 
 let delete ~chunk = function
   | Invalid s -> Invalid s
@@ -31,10 +40,6 @@ let is_empty = function Valid t -> Base.List.is_empty t.actions | _ -> true
 (* TODO: when applying insert, DO NOT apply if string already exist at this
  * place *)
 
-(* TODO: allow to merge patches when there are multiple actions on same file *)
-
-open Base
-
 let apply_single (lines : Piece_table.t Array.t) = function
   | Delete chunk ->
     let line_no = chunk.ch_begin.line in
@@ -51,34 +56,59 @@ let apply_single (lines : Piece_table.t Array.t) = function
     Piece_table.insert ~orig_pos:true ~pos:where.col to_insert line
     |> ignore
 
-let apply = function
+let suggested_suffix = ".close.ml"
+
+let apply =
+  function
   | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
   | Valid {actions; filename} ->
-    let out_filename = filename ^ ".suggested.ml" in
-    let is_empty_str = String.for_all ~f:Char.is_whitespace in
-    let lines =
-      Stdio.In_channel.read_lines filename
-      |> Array.of_list
-      |> Array.map ~f:Piece_table.create
-    in
-    List.iter ~f:(apply_single lines) actions;
-    Array.to_list lines
-    |> List.filter_map ~f:(fun l ->
-        let s = Piece_table.contents l in
-        if is_empty_str s && not @@ Piece_table.is_original l then
-          None
-        else Some s
+    try
+      if List.is_empty actions then Result.return ()
+      else (
+        Stdio.printf "- Patching %s...\n%!" filename;
+        let out_filename = filename ^ suggested_suffix in
+        let is_empty_str = String.for_all ~f:Char.is_whitespace in
+        let lines =
+          Stdio.In_channel.read_lines filename
+          |> Array.of_list
+          |> Array.map ~f:Piece_table.create
+        in
+        List.iter ~f:(apply_single lines) actions;
+        Array.to_list lines
+        |> List.filter_map ~f:(fun l ->
+            let s = Piece_table.contents l in
+            if is_empty_str s && not @@ Piece_table.is_original l then
+              None
+            else Some s
+          )
+        |> Stdio.Out_channel.write_lines out_filename;
+        Result.return ()
       )
-    |> Stdio.Out_channel.write_lines out_filename;
-    Result.return ()
+    with Sys_error s -> Result.fail s
 
 let clean () =
   Stdio.printf "Deleting...\n%!";
   let p = Feather.process "find"
-      ["-name"; "*.ml.suggested.ml"; "-print"; "-delete"] in
+      ["-name"; "*.ml" ^ suggested_suffix; "-print"; "-delete"] in
   let stderr, status = Feather.(collect stderr_and_status p) in
   begin if status = 0 then
       Stdio.printf "Done.\n" |> Result.return
     else Result.failf "Clean failed: %s" stderr
   end |> filter_errors
 
+let exports ts filename =
+  let sexps =
+    List.filter ts ~f:(Fn.non is_empty)
+    |>List.map ~f:sexp_of_t in
+  Sexp.save_sexps filename sexps
+
+let imports filename =
+  let sexps = Sexp.load_sexps filename in
+  List.map sexps ~f:t_of_sexp
+
+let apply_saved filename =
+  Stdio.printf
+    "Applying recommendations; modified files will be suffixed with %s...\n%!"
+    suggested_suffix;
+  let patches = imports filename in
+  map_result patches ~f:apply |> Result.map ~f:ignore |> filter_errors
