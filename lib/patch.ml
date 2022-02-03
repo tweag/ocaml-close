@@ -35,8 +35,6 @@ let is_empty = function Valid t -> Base.List.is_empty t.actions | _ -> true
 
 (* TODO: manage multiple edits on same line. with trie ? *)
 
-(* TODO: delete lines that end up empty after delete *)
-
 open Base
 
 let apply_single (lines : Piece_table.t Array.t) = function
@@ -59,6 +57,7 @@ let apply = function
   | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
   | Valid {actions; filename} ->
     let out_filename = filename ^ ".suggested.ml" in
+    let is_empty_str = String.for_all ~f:Char.is_whitespace in
     let lines =
       Stdio.In_channel.read_lines filename
       |> Array.of_list
@@ -66,6 +65,11 @@ let apply = function
     in
     List.iter ~f:(apply_single lines) actions;
     Array.to_list lines
-    |> List.map ~f:Piece_table.contents
+    |> List.filter_map ~f:(fun l ->
+        let s = Piece_table.contents l in
+        if is_empty_str s && not @@ Piece_table.is_original l then
+          None
+        else Some s
+      )
     |> Stdio.Out_channel.write_lines out_filename;
     Result.return ()
