@@ -7,11 +7,11 @@ module Log : sig
 end
 
 type t = {
+  command : Utils.command;
   conf : string -> Conf.conf;
   skip_absent : bool;
   silence_errors : bool;
   log : Log.t;
-  behavior : [`Suggest | `List_only];
 }
 
 val of_args : Utils.args -> ((string -> unit) * (int -> unit)) * int -> t

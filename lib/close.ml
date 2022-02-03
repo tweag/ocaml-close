@@ -62,7 +62,7 @@ let compute_summary tree (t, use_sites) =
 (* TODO:
  * command to automatically perform the modification
  *)
-let enact_decision filename sum =
+let print_decision filename sum =
   let open Conf in
   let line = sum.chunk.ch_begin.line in
   let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.short_name in
@@ -181,17 +181,17 @@ let apply_rule tree rule sum =
     | Ghost_use -> sum.ghost_use
   in apply rule
 
-let make_decision filename tree conf sum =
+let make_decision tree conf sum =
   let open Conf in
   let answers =
     List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum)) conf.rules
   in
-  let decision =
     List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
         match List.Assoc.find ~equal:Poly.equal answers kind with
         | None | Some false -> acc
         | Some true -> kind
-      ) in
+      )
+      (*
   enact_decision filename sum decision;
   let patch = patch_of_decision filename sum decision in
   if not @@ Patch.is_empty patch then (
@@ -201,6 +201,7 @@ let make_decision filename tree conf sum =
     Patch.apply patch
   )
   else Result.return ()
+         *)
 
 module Progress_bar = struct
   open Progress
@@ -231,17 +232,31 @@ let get_summaries tree params =
 
 let analyse params filename =
   let open Params in
+  let error s = 
+    Printf.sprintf "-> %s: %s" filename s
+  in
   begin
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
     let* summaries = get_summaries tree params in
     let conf = params.conf filename in
-    let f = match params.behavior with
-      | `Suggest -> make_decision filename tree conf
-      | `List_only -> fun x -> Result.return @@ Stdio.printf "%s\n" (show_open_summary x)
+    let f sum = match params.command with
+      | `Lint ->
+        let decision = make_decision tree conf sum in
+        print_decision filename sum decision;
+        Result.return ()
+      | `Dump ->
+        Stdio.printf "%s\n" (show_open_summary sum);
+        Result.return ()
+      | `Patch ->
+        let decision = make_decision tree conf sum in
+        let patch = patch_of_decision filename sum decision in
+        (* Stdio.printf "Patch: %s\n" (Patch.show patch); *)
+        if not @@ Patch.is_empty patch then Patch.apply patch
+        else Result.return ()
     in
     map_result ~f summaries
-  end |> Result.map_error ~f:(fun s -> Printf.sprintf "-> %s: %s" filename s)
+  end |> Result.map_error ~f:error
 
 let execute args filenames =
   let open Params in

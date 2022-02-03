@@ -33,14 +33,14 @@ end
 
 
 type t = {
+  command : Utils.command;
   conf : string -> Conf.conf;
   skip_absent : bool;
   silence_errors : bool;
   log : Log.t;
-  behavior : [`Suggest | `List_only];
 }
 
 let of_args (t : Utils.args) info =
   let conf = Conf.read_conf ?conf_file:t.conf_file in
   {conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
-   behavior = t.behavior; log = Log.make t.report info t.verbose}
+   command = t.command; log = Log.make t.report info t.verbose}

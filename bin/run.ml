@@ -51,11 +51,11 @@ let info =
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
-let pack_args behavior report conf_file
+let pack_args command report conf_file
     skip_absent silence_errors verbose =
   let open Closelib in
   Utils.{report; conf_file; skip_absent; silence_errors;
-         behavior; verbose}
+         command; verbose}
 
 let common_options behavior =
   let open Term in
@@ -69,14 +69,18 @@ let common_options behavior =
 
 let lint =
   let doc = "lint files to suggest a list of modification recommendations" in
-  (common_options `Suggest, Term.info "lint" ~doc)
+  (common_options `Lint, Term.info "lint" ~doc)
 
 let dump =
   let doc = "print a summary of every found open, mainly for debugging purposes"
   in
-  (common_options `List_only, Term.info "dump" ~doc)
+  (common_options `Dump, Term.info "dump" ~doc)
+
+let patch =
+  let doc = "try to patch files according to the computed recommendations" in
+  (common_options `Patch, Term.info "patch" ~doc)
 
 let default_t = fst lint
 
 let () =
-  Term.eval_choice (default_t, info) [lint; dump] |> Term.exit
+  Term.eval_choice (default_t, info) [lint; dump; patch] |> Term.exit
