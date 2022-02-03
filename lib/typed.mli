@@ -1,3 +1,4 @@
+(** Typed AST analysis facilities, tied to OCaml 4.11.2 *)
 
 (** Retrieval and simple manipulation of the OCaml typed tree. *)
 module Extraction : sig

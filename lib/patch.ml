@@ -4,12 +4,12 @@ open Core
 type single =
   | Delete of chunk
   | Insert of {what : string; where : pos; newline : bool}
-[@@deriving show, sexp]
+[@@deriving sexp]
 
 type t =
   | Valid of {actions : single list; filename : string}
   | Invalid of string
-[@@deriving show, sexp]
+[@@deriving sexp]
 
 let merge t1 t2 = match t1, t2 with
   | Valid t1, Valid t2 ->
@@ -49,6 +49,7 @@ let apply_single (lines : Piece_table.t Array.t) = function
   | Insert {what; where; newline} ->
     let line_no = where.line in
     let line = lines.(line_no - 1) in
+    (* Keep indentation if we are inserting a new line *)
     let to_insert = if newline then
         what ^ "\n" ^ (String.make where.col ' ')
       else what
@@ -84,9 +85,12 @@ let apply =
         |> Stdio.Out_channel.write_lines out_filename;
         Result.return ()
       )
-    with Sys_error s -> Result.fail s
+    with Sys_error s ->
+      (* Catch if we're patching in the wrong place *)
+      Result.fail s 
 
 let clean () =
+  (* Use find to delete files rather than doing it ourselves *)
   Stdio.printf "Deleting...\n%!";
   let p = Feather.process "find"
       ["-name"; "*.ml" ^ suggested_suffix; "-print"; "-delete"] in

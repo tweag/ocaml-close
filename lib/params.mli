@@ -1,3 +1,5 @@
+(** Params and functions that are carried around in the library *)
+
 module Log : sig
   type t = {
     change : string -> unit;

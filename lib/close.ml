@@ -17,8 +17,10 @@ type open_summary = {
   use_sites : pos list;
 }[@@deriving show]
 
+(* Ugly heuristic for detecting that a name is from a module *)
 let is_module_id id = Char.is_uppercase id.[0]
 
+(* Ugly heuristic for detecting infix and prefix operators *)
 let is_operator_id id =
   String.split ~on:'.' id
   |> List.last_exn
@@ -26,6 +28,7 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
+(* Fully analyse an open t and its use sites, systematically *)
 let compute_summary tree (t, use_sites) =
   let chunk = Typed.Open_info.get_chunk t in
   let scope_lines = Typed.Find.scope_lines tree t in
@@ -62,6 +65,7 @@ let compute_summary tree (t, use_sites) =
 let print_decision filename sum =
   let open Conf in
   let line = sum.chunk.ch_begin.line in
+  (* Color the output *)
   let mod_name = Printf.sprintf "\027[91m%s\027[0m" sum.short_name in
   let print_file () = Stdio.printf "\027[90m%s:\027[0m " filename in
   Progress.interject_with (fun () -> function
@@ -142,8 +146,10 @@ let module_name_equal a b =
 
 (* TODO: add --explain flag to explain why a rule was applied *)
 
+(* Evaluate the configuration language *)
 let apply_rule tree rule sum =
   let open Conf in
+  (* expressions *)
   let rec eval = function
     | Const n -> n
     | Uses -> sum.total
@@ -162,6 +168,7 @@ let apply_rule tree rule sum =
     | Minus (e1, e2) -> eval e1 - eval e2
     | Div (e1, e2) -> eval e1 / eval e2
   in
+  (* predicates *)
   let rec apply = function
     | And l -> List.map ~f:apply l |> List.for_all ~f:Fn.id
     | Or l -> List.map ~f:apply l |> List.exists ~f:Fn.id
@@ -183,12 +190,15 @@ let make_decision tree conf sum =
   let answers =
     List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum)) conf.rules
   in
-    List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
-        match List.Assoc.find ~equal:Poly.equal answers kind with
-        | None | Some false -> acc
-        | Some true -> kind
-      )
+  (* Find the first matching rule, with the given precedence. Keep is nothing
+     matches *)
+  List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
+      match List.Assoc.find ~equal:Poly.equal answers kind with
+      | None | Some false -> acc
+      | Some true -> kind
+    )
 
+(* Purely decorative *)
 module Progress_bar = struct
   open Progress
   let config = Config.(v ~persistent:false ())
@@ -204,6 +214,7 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
+(* Detect all opens in the tree and analyse them *)
 let get_summaries tree params =
   let open Params in
   let opens = Typed.Open_info.gather tree in
@@ -234,6 +245,7 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
       | Cmd_lint ->
         let decision = make_decision tree conf sum in
         print_decision filename sum decision;
+        (* Compute and save patch for decision made *)
         let patch = patch_of_decision filename sum decision in
         Result.return patch
       | Cmd_dump ->
@@ -243,6 +255,7 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
     map_result ~f summaries
   end |> Result.map_error ~f:error
 
+(* Process a single file, returning the computed patche or nothing *)
 let one_file (type ty) params (com : ty com) filename : ty res = 
   let open Params in
   params.log.new_file filename;
@@ -250,6 +263,7 @@ let one_file (type ty) params (com : ty com) filename : ty res =
   | Cmd_lint ->
     let* patches = analyse params Cmd_lint filename in
     let patch =
+      (* Merge all open patches into a single one *)
       if List.is_empty patches then Patch.empty filename
       else List.reduce_exn patches ~f:Patch.merge
     in
@@ -263,8 +277,10 @@ let execute args filenames =
   let total = List.length filenames in
   let bar = Progress_bar.b total in
   let go oreport freport =
+    (* Prepare arguments *)
     let params = Params.of_args args ((oreport, freport), total) in
     params.log.change "Starting";
+    (* What to do with all files, depending on the command *)
     let gather =
       match params.command with
       | `Lint ->
@@ -286,6 +302,7 @@ let execute args filenames =
         List.map filenames ~f:(one_file params Cmd_dump)
         |> Result.combine_errors |> Result.map ~f:ignore
     in
+    (* Process errors, correctly formatting them *)
     let* errors = Result.map_error gather ~f:(fun err_list ->
         let errors = String.concat ~sep:"\n" err_list in
         Printf.sprintf "There were errors during processing:\n%s" errors
@@ -295,6 +312,7 @@ let execute args filenames =
     in 
     Result.return errors
   in
+  (* Launch the general program with reporting functions *)
   match begin
     if Poly.(args.report = `Bar) then
       Progress.with_reporters ~config:Progress_bar.config bar go
