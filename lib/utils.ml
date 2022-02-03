@@ -1,11 +1,13 @@
 open Core
 
+type command = [`Lint | `Dump | `Patch]
+
 type args = {
+  command : command;
   report : [`Bar | `Text | `None];
   conf_file : string option;
   skip_absent : bool;
   silence_errors : bool;
-  behavior : [`Suggest | `List_only];
   verbose : bool;
 }
 
