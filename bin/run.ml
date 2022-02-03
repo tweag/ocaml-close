@@ -21,23 +21,6 @@ let report =
              The value $(docv) must be one of `bar', `text' or `none'" in
   Arg.(value & opt (conv (parse, print)) `Bar & info ["r"; "report"] ~doc)
 
-let behavior =
-  let parse =
-    let open Base in function
-      | "suggest" -> Result.return `Suggest
-      | "list-only" -> Result.return `List_only
-      | _ -> Result.fail (`Msg "must be one of 'suggest' or 'list-only'.")
-  in
-  let print fmt x = let text = match x with
-      | `Suggest -> "suggest" | `List_only -> "list-only"
-    in Format.pp_print_string fmt text
-  in
-  let doc = "Defines behavior of the program. 'suggest' lists modification
-  suggestions, while 'list-only' makes the program print a summary of every
-  found open, mainly for debugging purposes."
-  in
-  Arg.(value & opt (conv (parse, print)) `Suggest & info ["b"; "behavior"] ~doc)
-
 let conf_file =
   let doc = "Force the usage of a configuration file." in
   let env =
@@ -68,18 +51,32 @@ let info =
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
 
+let pack_args behavior report conf_file
+    skip_absent silence_errors verbose =
+  let open Closelib in
+  Utils.{report; conf_file; skip_absent; silence_errors;
+         behavior; verbose}
 
-let close_t =
+let common_options behavior =
   let open Term in
   let open Closelib in
-  let pack_args
-      report conf_file skip_absent
-      silence_errors behavior verbose =
-    Utils.{report; conf_file; skip_absent; silence_errors;
-           behavior; verbose} in
-  let args = const pack_args $ report $ conf_file $ skip_absent
-             $ silence_errors $ behavior $ verbose in
+  let args =
+    const pack_args $ (const behavior) $ report $ conf_file $ skip_absent
+    $ silence_errors $ verbose
+  in
   let applied = const Close.execute $ args $ filenames in
   term_result applied
 
-let () = Term.eval (close_t, info) |> Term.exit
+let lint =
+  let doc = "lint files to suggest a list of modification recommendations" in
+  (common_options `Suggest, Term.info "lint" ~doc)
+
+let dump =
+  let doc = "print a summary of every found open, mainly for debugging purposes"
+  in
+  (common_options `List_only, Term.info "dump" ~doc)
+
+let default_t = fst lint
+
+let () =
+  Term.eval_choice (default_t, info) [lint; dump] |> Term.exit
