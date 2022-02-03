@@ -1,0 +1,10 @@
+{0 ocamlclose}
+
+[ocamlclose] is an application to detect and transform [open M] statements in
+OCaml source code, in order to make the overall source more legible.
+
+You can read more about its usage on its 
+{{: https://github.com/tweag/ocaml-close} Github} page.
+
+The application is only a thin wrapper around the {!module:Closelib} library,
+which is documented here.

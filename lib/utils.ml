@@ -1,3 +1,5 @@
+(** Misc types and stuff *)
+
 open Core
 
 type command = [`Lint | `Dump]

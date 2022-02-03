@@ -1,3 +1,5 @@
+(** Configuration language and loading *)
+
 type expr =
   | Const of int
   | Plus of expr * expr
