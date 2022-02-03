@@ -9,6 +9,7 @@ end
 type t = {
   command : Utils.command;
   conf : string -> Conf.conf;
+  patch_file : string;
   skip_absent : bool;
   silence_errors : bool;
   log : Log.t;

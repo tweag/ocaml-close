@@ -5,7 +5,7 @@ module Extraction : sig
   type t
   (** The type of a typed tree. Left abstract to isolate compiler-libs usage *)
 
-  val get_typed_tree : params:Params.t -> string -> (t, string) result
+  val get_typed_tree : params:Params.t -> string -> t Utils.res
   (** [get_typed_tree ~report filename] locates the .cmt file corresponding to
       the given .ml by using the `dune describe` command, building the .cmt
       file in the process if it does not exist.
@@ -28,11 +28,11 @@ module Open_info : sig
   val get_chunk : t -> Utils.chunk
   (** Get the position of an open in the source file *)
 
-  val get_name : t -> (string, string) result
+  val get_name : t -> string Utils.res
   (** Try to retrieve the name of an opened module. Will fail if it is not a
       simple identifier (for example a functor application). *)
 
-  val get_short_name : t -> (string, string) result
+  val get_short_name : t -> string Utils.res
 end
 
 (** For gathering the use-sites of an [open Module]. *)
@@ -41,7 +41,7 @@ module Open_uses : sig
   type use = (string * use_loc)
 
   val compute : Extraction.t -> Open_info.t
-    -> (use list, string) result
+    -> use list Utils.res
   (** [compute tree op] returns a list of use-sites of [op] in [tree]. Each
       use-site is described by its name (the name of the value/type/... used
       from the opened module) and its location in the source file *)

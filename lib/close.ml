@@ -59,9 +59,6 @@ let compute_summary tree (t, use_sites) =
                  imports_syntax; chunk; short_name; optimal_pos; dist_to_optimal;
                  functions; use_sites; ghost_use}
 
-(* TODO:
- * command to automatically perform the modification
- *)
 let print_decision filename sum =
   let open Conf in
   let line = sum.chunk.ch_begin.line in
@@ -119,7 +116,7 @@ let patch_of_decision filename sum decision =
         Patch.insert to_insert ~at:pos patch
       )
   | Structure -> 
-    Patch.invalid "transformation into explicit structures
+    Patch.invalid "transformation into explicit structures\
     cannot yet be automatically applied"
     (* TODO, must know if uses are values, modules, types *)
 
@@ -191,17 +188,6 @@ let make_decision tree conf sum =
         | None | Some false -> acc
         | Some true -> kind
       )
-      (*
-  enact_decision filename sum decision;
-  let patch = patch_of_decision filename sum decision in
-  if not @@ Patch.is_empty patch then (
-    (*
-    Stdio.printf "Patch: %s\n" (Patch.show patch);
-       *)
-    Patch.apply patch
-  )
-  else Result.return ()
-         *)
 
 module Progress_bar = struct
   open Progress
@@ -230,7 +216,11 @@ let get_summaries tree params =
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
   |> Result.return
 
-let analyse params filename =
+type 'a com =
+  | Cmd_lint : Patch.t com
+  | Cmd_dump : unit com
+
+let analyse (type ty) params (com : ty com) filename : ty list res =
   let open Params in
   let error s = 
     Printf.sprintf "-> %s: %s" filename s
@@ -240,23 +230,33 @@ let analyse params filename =
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
     let* summaries = get_summaries tree params in
     let conf = params.conf filename in
-    let f sum = match params.command with
-      | `Lint ->
+    let f sum : ty res = match com with
+      | Cmd_lint ->
         let decision = make_decision tree conf sum in
         print_decision filename sum decision;
-        Result.return ()
-      | `Dump ->
+        let patch = patch_of_decision filename sum decision in
+        Result.return patch
+      | Cmd_dump ->
         Stdio.printf "%s\n" (show_open_summary sum);
         Result.return ()
-      | `Patch ->
-        let decision = make_decision tree conf sum in
-        let patch = patch_of_decision filename sum decision in
-        (* Stdio.printf "Patch: %s\n" (Patch.show patch); *)
-        if not @@ Patch.is_empty patch then Patch.apply patch
-        else Result.return ()
     in
     map_result ~f summaries
   end |> Result.map_error ~f:error
+
+let one_file (type ty) params (com : ty com) filename : ty res = 
+  let open Params in
+  params.log.new_file filename;
+  match com with
+  | Cmd_lint ->
+    let* patches = analyse params Cmd_lint filename in
+    let patch =
+      if List.is_empty patches then Patch.empty filename
+      else List.reduce_exn patches ~f:Patch.merge
+    in
+    Result.return patch
+  | Cmd_dump ->
+    analyse params Cmd_dump filename |> ignore;
+    Result.return ()
 
 let execute args filenames =
   let open Params in
@@ -265,17 +265,35 @@ let execute args filenames =
   let go oreport freport =
     let params = Params.of_args args ((oreport, freport), total) in
     params.log.change "Starting";
-    List.map filenames ~f:(fun filename ->
-        params.log.new_file filename;
-        analyse params filename
-      )
-    |> Result.combine_errors
-    |> Result.map_error ~f:(fun err_list ->
+    let gather =
+      match params.command with
+      | `Lint ->
+        let patches = List.map filenames ~f:(one_file params Cmd_lint) in
+        let* patches =
+          if args.silence_errors then
+            List.filter_map patches ~f:(function
+                | Ok x -> Some x
+                | Error _ -> None
+              ) |> Result.return
+          else
+            Result.combine_errors patches
+        in
+        Patch.exports patches params.patch_file;
+        Stdio.printf "Run 'ocamlclose patch %s' to apply modifications\n"
+          params.patch_file;
+        Result.return ()
+      | `Dump ->
+        List.map filenames ~f:(one_file params Cmd_dump)
+        |> Result.combine_errors |> Result.map ~f:ignore
+    in
+    let* errors = Result.map_error gather ~f:(fun err_list ->
         let errors = String.concat ~sep:"\n" err_list in
         Printf.sprintf "There were errors during processing:\n%s" errors
       )
     |> Result.map ~f:ignore
     |> filter_errors
+    in 
+    Result.return errors
   in
   match begin
     if Poly.(args.report = `Bar) then
