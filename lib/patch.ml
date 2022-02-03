@@ -33,8 +33,6 @@ let is_empty = function Valid t -> Base.List.is_empty t.actions | _ -> true
 
 (* TODO: allow to merge patches when there are multiple actions on same file *)
 
-(* TODO: manage multiple edits on same line. with trie ? *)
-
 open Base
 
 let apply_single (lines : Piece_table.t Array.t) = function
