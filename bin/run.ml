@@ -68,19 +68,26 @@ let common_options behavior =
   term_result applied
 
 let lint =
-  let doc = "lint files to suggest a list of modification recommendations" in
-  (common_options `Lint, Term.info "lint" ~doc)
+  let doc = "Lint files to suggest a list of modification recommendations."
+  in (common_options `Lint, Term.info "lint" ~doc)
 
 let dump =
-  let doc = "print a summary of every found open, mainly for debugging purposes"
+  let doc =
+    "Print a summary of every found open, mainly for debugging purposes."
   in
   (common_options `Dump, Term.info "dump" ~doc)
 
 let patch =
-  let doc = "try to patch files according to the computed recommendations" in
+  let doc = "Try to patch files according to the computed recommendations." in
   (common_options `Patch, Term.info "patch" ~doc)
+
+let clean =
+  let doc = "Clean all .suggested files." in
+  let term = Term.(const Closelib.Patch.clean $ const ())
+             |> Term.term_result in
+  (term, Term.info "clean" ~doc)
 
 let default_t = fst lint
 
 let () =
-  Term.eval_choice (default_t, info) [lint; dump; patch] |> Term.exit
+  Term.eval_choice (default_t, info) [lint; dump; patch; clean] |> Term.exit

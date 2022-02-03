@@ -71,3 +71,14 @@ let apply = function
       )
     |> Stdio.Out_channel.write_lines out_filename;
     Result.return ()
+
+let clean () =
+  Stdio.printf "Deleting...\n%!";
+  let p = Feather.process "find"
+      ["-name"; "*.ml.suggested.ml"; "-print"; "-delete"] in
+  let stderr, status = Feather.(collect stderr_and_status p) in
+  begin if status = 0 then
+      Stdio.printf "Done.\n" |> Result.return
+    else Result.failf "Clean failed: %s" stderr
+  end |> filter_errors
+
