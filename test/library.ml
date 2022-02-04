@@ -14,6 +14,8 @@ module B = struct
   module S = struct
     let s = ()
   end
+  type t = {f1: unit}
+  let f = {f1 = ()}
 end
 
 module C = struct

@@ -1,4 +1,5 @@
 open Library.A
+open Library.B
 
 
 
@@ -73,5 +74,21 @@ let _ = x
 let _ = x
 let _ = x
 let _ = x
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
+let _ = f.f1
 
 let link () = ()

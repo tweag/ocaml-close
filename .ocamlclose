@@ -23,8 +23,15 @@
   (remove (and (<= uses 5) (<= name-length 15) (not ghost-use)))
 
   ; - replaced by an explicit structured open, if...
-  ;   ... it exports few different identifiers, which are quite used.
-  (structure (and (<= symbols 5) (>= uses 15)))
+  (structure
+    ;   ... it exports few different identifiers, and...
+    (and (<= symbols 5)
+         ; ... it is used enough times, and...
+         (>= uses 15)
+         ; ... it only exports direct symbols, not from submodules, and...
+         (not exports-subvalues)
+         ; ... it does not exports types (avoid using ppx_import).
+         (not exports-types)))
 
   ; - removed and replaced by local 'let open <X> in's if...
   ;   ... it is used only by only a few functions.

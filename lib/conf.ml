@@ -49,6 +49,7 @@ type rule =
   | Exports_modules
   | Exports_modules_only
   | Exports_subvalues
+  | Exports_types
   | Ghost_use
 [@@deriving sexp_of]
 
@@ -67,6 +68,7 @@ let rec rule_of_sexp =
     | Atom "exports-modules-only" -> Exports_modules_only
     | Atom "exports-modules" -> Exports_modules
     | Atom "exports-subvalues" -> Exports_subvalues
+    | Atom "exports-types" -> Exports_types
     | Atom "ghost-use" -> Ghost_use
     | s -> Stdio.printf "Unexpected token: %s\n" (Sexp.to_string s); failwith "Not a rule"
 

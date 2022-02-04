@@ -34,6 +34,42 @@ Analyzing...
 Processing ./.test.eobjs/byte/dune__exe__Open_structure.cmt (4/5)
 Fetching...
 Analyzing...
+{ Close.module_name = "Dune__exe.Library.B"; short_name = "Library.B";
+  chunk =
+  { Utils.ch_begin = { Utils.line = 2; col = 0 };
+    ch_end = { Utils.line = 2; col = 14 } };
+  ghost_use = false; total = 32;
+  symbols =
+  [("t", (Typed.Open_uses.Uk_Type 0)); ("f", Typed.Open_uses.Uk_Value)];
+  scope_lines = 93; optimal_pos = { Utils.line = 77; col = 0 };
+  dist_to_optimal = 75;
+  functions =
+  (Some [{ Utils.line = 85; col = 8 }; { Utils.line = 87; col = 8 };
+          { Utils.line = 91; col = 8 }; { Utils.line = 79; col = 8 };
+          { Utils.line = 77; col = 8 }; { Utils.line = 92; col = 8 };
+          { Utils.line = 81; col = 8 }; { Utils.line = 78; col = 8 };
+          { Utils.line = 86; col = 8 }; { Utils.line = 82; col = 8 };
+          { Utils.line = 89; col = 8 }; { Utils.line = 88; col = 8 };
+          { Utils.line = 83; col = 8 }; { Utils.line = 90; col = 8 };
+          { Utils.line = 84; col = 8 }; { Utils.line = 80; col = 8 }]);
+  use_sites =
+  [{ Utils.line = 92; col = 8 }; { Utils.line = 92; col = 8 };
+    { Utils.line = 91; col = 8 }; { Utils.line = 91; col = 8 };
+    { Utils.line = 90; col = 8 }; { Utils.line = 90; col = 8 };
+    { Utils.line = 89; col = 8 }; { Utils.line = 89; col = 8 };
+    { Utils.line = 88; col = 8 }; { Utils.line = 88; col = 8 };
+    { Utils.line = 87; col = 8 }; { Utils.line = 87; col = 8 };
+    { Utils.line = 86; col = 8 }; { Utils.line = 86; col = 8 };
+    { Utils.line = 85; col = 8 }; { Utils.line = 85; col = 8 };
+    { Utils.line = 84; col = 8 }; { Utils.line = 84; col = 8 };
+    { Utils.line = 83; col = 8 }; { Utils.line = 83; col = 8 };
+    { Utils.line = 82; col = 8 }; { Utils.line = 82; col = 8 };
+    { Utils.line = 81; col = 8 }; { Utils.line = 81; col = 8 };
+    { Utils.line = 80; col = 8 }; { Utils.line = 80; col = 8 };
+    { Utils.line = 79; col = 8 }; { Utils.line = 79; col = 8 };
+    { Utils.line = 78; col = 8 }; { Utils.line = 78; col = 8 };
+    { Utils.line = 77; col = 8 }; { Utils.line = 77; col = 8 }]
+  }
 { Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   chunk =
   { Utils.ch_begin = { Utils.line = 1; col = 0 };
@@ -41,32 +77,32 @@ Analyzing...
   ghost_use = false; total = 22;
   symbols =
   [("x", Typed.Open_uses.Uk_Value); ("t", (Typed.Open_uses.Uk_Type 1))];
-  scope_lines = 77; optimal_pos = { Utils.line = 54; col = 0 };
-  dist_to_optimal = 53;
+  scope_lines = 94; optimal_pos = { Utils.line = 55; col = 0 };
+  dist_to_optimal = 54;
   functions =
   (Some [{ Utils.line = 69; col = 8 }; { Utils.line = 73; col = 8 };
           { Utils.line = 58; col = 8 }; { Utils.line = 70; col = 8 };
           { Utils.line = 61; col = 8 }; { Utils.line = 74; col = 8 };
           { Utils.line = 71; col = 8 }; { Utils.line = 66; col = 8 };
-          { Utils.line = 67; col = 8 }; { Utils.line = 62; col = 8 };
-          { Utils.line = 68; col = 8 }; { Utils.line = 55; col = 8 };
-          { Utils.line = 72; col = 8 }; { Utils.line = 65; col = 8 };
-          { Utils.line = 64; col = 8 }; { Utils.line = 57; col = 8 };
-          { Utils.line = 59; col = 8 }; { Utils.line = 56; col = 8 };
-          { Utils.line = 60; col = 8 }; { Utils.line = 63; col = 8 };
-          { Utils.line = 75; col = 8 }; { Utils.line = 54; col = 8 }]);
+          { Utils.line = 76; col = 8 }; { Utils.line = 67; col = 8 };
+          { Utils.line = 62; col = 8 }; { Utils.line = 68; col = 8 };
+          { Utils.line = 55; col = 8 }; { Utils.line = 72; col = 8 };
+          { Utils.line = 65; col = 8 }; { Utils.line = 64; col = 8 };
+          { Utils.line = 57; col = 8 }; { Utils.line = 59; col = 8 };
+          { Utils.line = 56; col = 8 }; { Utils.line = 60; col = 8 };
+          { Utils.line = 63; col = 8 }; { Utils.line = 75; col = 8 }]);
   use_sites =
-  [{ Utils.line = 75; col = 8 }; { Utils.line = 74; col = 8 };
-    { Utils.line = 73; col = 8 }; { Utils.line = 72; col = 8 };
-    { Utils.line = 71; col = 8 }; { Utils.line = 70; col = 8 };
-    { Utils.line = 69; col = 8 }; { Utils.line = 68; col = 8 };
-    { Utils.line = 67; col = 8 }; { Utils.line = 66; col = 8 };
-    { Utils.line = 65; col = 8 }; { Utils.line = 64; col = 8 };
-    { Utils.line = 63; col = 8 }; { Utils.line = 62; col = 8 };
-    { Utils.line = 61; col = 8 }; { Utils.line = 60; col = 8 };
-    { Utils.line = 59; col = 8 }; { Utils.line = 58; col = 8 };
-    { Utils.line = 57; col = 8 }; { Utils.line = 56; col = 8 };
-    { Utils.line = 55; col = 8 }; { Utils.line = 54; col = 8 }]
+  [{ Utils.line = 76; col = 8 }; { Utils.line = 75; col = 8 };
+    { Utils.line = 74; col = 8 }; { Utils.line = 73; col = 8 };
+    { Utils.line = 72; col = 8 }; { Utils.line = 71; col = 8 };
+    { Utils.line = 70; col = 8 }; { Utils.line = 69; col = 8 };
+    { Utils.line = 68; col = 8 }; { Utils.line = 67; col = 8 };
+    { Utils.line = 66; col = 8 }; { Utils.line = 65; col = 8 };
+    { Utils.line = 64; col = 8 }; { Utils.line = 63; col = 8 };
+    { Utils.line = 62; col = 8 }; { Utils.line = 61; col = 8 };
+    { Utils.line = 60; col = 8 }; { Utils.line = 59; col = 8 };
+    { Utils.line = 58; col = 8 }; { Utils.line = 57; col = 8 };
+    { Utils.line = 56; col = 8 }; { Utils.line = 55; col = 8 }]
   }
 Processing ./.test.eobjs/byte/dune__exe__Test.cmt (5/5)
 Fetching...
