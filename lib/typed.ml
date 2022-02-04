@@ -321,8 +321,6 @@ module Open_uses = struct
    * either discard nested ones, recommend to remove
    * or analyse each independently, and reduce the scope of the outer ones *)
 
-  (* TODO do not count identifiers that are already manually qualified *)
-
   let f_if_constr f t =
     let open Types in
     match t.desc with
@@ -333,7 +331,7 @@ module Open_uses = struct
 
   let check_label f desc = f_if_constr f desc.Types.lbl_res
 
-  let path_iterator t f =
+  let path_iterator t (f : use_loc -> ?txt:Longident.t -> use_kind -> Path.t -> unit)  =
     let super = Tast_iterator.default_iterator in
     let attributed_types_locs = ref [] in
     let f loc =
@@ -347,22 +345,25 @@ module Open_uses = struct
     let typ it typ =
       let f = f typ.ctyp_loc in
       begin match typ.ctyp_desc with
-      | Ttyp_constr (path, _, args) ->
-        f (Uk_Type (List.length args)) path
-      | _ -> ()
+        | Ttyp_constr (path, {txt; _}, args) ->
+          f ~txt (Uk_Type (List.length args)) path
+        | _ -> ()
       end; super.typ it typ
     in
     let pat (type k) it (p : k general_pattern) =
       let f = f p.pat_loc in
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
-          | Tpat_type (path, _) -> f (Uk_Type 0) path 
-          | Tpat_open (path, _, _) -> f Uk_Module path
+          | Tpat_type (path, {txt; _}) -> f ~txt (Uk_Type 0) path 
+          | Tpat_open (path, {txt; _}, _) -> f ~txt Uk_Module path
           | _ -> ()
         );
       begin match p.pat_desc with
-        | Tpat_construct (_, cons_desc, _) -> check_constructor f cons_desc
+        | Tpat_construct ({txt; _}, cons_desc, _) ->
+          check_constructor (f ~txt) cons_desc
         | Tpat_record (fields, _) ->
-          List.iter fields ~f:(fun (_, lab_desc, _) -> check_label f lab_desc)
+          List.iter fields ~f:(fun ({txt; _}, lab_desc, _) ->
+              check_label (f ~txt) lab_desc
+            )
         | _ -> ()
       end; super.pat it p
     in
@@ -372,14 +373,16 @@ module Open_uses = struct
         begin match e.exp_desc with
           | Texp_instvar (path1, path2, _) ->
             f Uk_Value path1; f Uk_Value path2
-          | Texp_ident (path, _, _)
-          | Texp_new (path, _, _) 
-          | Texp_override (path, _)
-          | Texp_extension_constructor (_, path) -> f Uk_Value path
+          | Texp_override (path, _) -> f Uk_Value path
+          | Texp_ident (path, {txt; _}, _)
+          | Texp_new (path, {txt; _}, _) 
+          | Texp_extension_constructor ({txt; _}, path) -> f ~txt Uk_Value path
           | Texp_letop {let_; _} -> f Uk_Value let_.bop_op_path
-          | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
-          | Texp_field (_, _, lab_desc)
-          | Texp_setfield (_, _, lab_desc, _) -> check_label f lab_desc
+          | Texp_construct ({txt; _}, cons_desc, _) ->
+            check_constructor (f ~txt) cons_desc
+          | Texp_field (_, {txt; _}, lab_desc)
+          | Texp_setfield (_, {txt; _}, lab_desc, _) ->
+            check_label (f ~txt) lab_desc
           | Texp_record {fields; _} ->
             Array.iter fields ~f:(fun (lab_desc, _) -> check_label f lab_desc)
           | _ -> ()
@@ -388,13 +391,13 @@ module Open_uses = struct
     in
     let module_expr it m =
       begin match m.mod_desc with
-        | Tmod_ident (path, _) -> f m.mod_loc Uk_Module path
+        | Tmod_ident (path, {txt; _}) -> f ~txt m.mod_loc Uk_Module path
         | _ -> ()
       end; super.module_expr it m
     in
     let module_type it m =
       begin match m.mty_desc with
-        | Tmty_ident (path, _) -> f m.mty_loc Uk_Module_Type path
+        | Tmty_ident (path, {txt; _}) -> f ~txt m.mty_loc Uk_Module_Type path
         | _ -> ()
       end; super.module_type it m
     in
@@ -428,18 +431,31 @@ module Open_uses = struct
       | _, _ -> None
     in
     let uses = ref [] in
-    let f loc kind vpath = 
+    (* Path of the open *)
+    let* osegs = segs_of_path opath in
+    (* Path of the open short name *)
+    let* sosegs = Open_info.get_ident o in
+    let sosegs = Longident.flatten sosegs in
+    (* Function applied on each potential use *)
+    let f loc ?(txt=Longident.Lident "") kind vpath = 
       begin
         if check_scope loc then
-          let* osegs = segs_of_path opath in
+          (* Path of the fully-qualified use *)
           let* vsegs = segs_of_path vpath in
-          match matches osegs vsegs with
-          | Some suffix ->
-            let name = String.concat ~sep:"." suffix in
-            let use = {name; loc; kind} in
-            uses := use :: !uses;
+          (* Path of the actual use *)
+          let isegs = Longident.flatten txt in
+          if Option.is_some (matches sosegs isegs) then
+            (* Use is already qualified, skip *)
             Result.return ()
-          | None -> Result.return ()
+          else
+            (* Isolate the suffix *)
+            match matches osegs vsegs with
+            | Some suffix ->
+              let name = String.concat ~sep:"." suffix in
+              let use = {name; loc; kind} in
+              uses := use :: !uses;
+              Result.return ()
+            | None -> Result.return ()
         else Result.return ()
       end |> ignore (* Silence individual errors, no need to stop everything *)
     in

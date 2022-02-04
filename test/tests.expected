@@ -10,7 +10,7 @@ Analyzing...
   { Utils.ch_begin = { Utils.line = 4; col = 2 };
     ch_end = { Utils.line = 4; col = 16 } };
   ghost_use = false; total = 1; symbols = [("x", Typed.Open_uses.Uk_Value)];
-  scope_lines = 3; optimal_pos = { Utils.line = 6; col = 2 };
+  scope_lines = 4; optimal_pos = { Utils.line = 6; col = 2 };
   dist_to_optimal = 2; functions = (Some [{ Utils.line = 6; col = 10 }]);
   use_sites = [{ Utils.line = 6; col = 10 }] }
 { Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
@@ -20,12 +20,12 @@ Analyzing...
   ghost_use = false; total = 3;
   symbols =
   [("x", Typed.Open_uses.Uk_Value); ("y", Typed.Open_uses.Uk_Value)];
-  scope_lines = 11; optimal_pos = { Utils.line = 3; col = 0 };
+  scope_lines = 12; optimal_pos = { Utils.line = 3; col = 0 };
   dist_to_optimal = 2;
   functions =
-  (Some [{ Utils.line = 9; col = 16 }; { Utils.line = 6; col = 10 }]);
+  (Some [{ Utils.line = 10; col = 16 }; { Utils.line = 6; col = 10 }]);
   use_sites =
-  [{ Utils.line = 9; col = 19 }; { Utils.line = 9; col = 16 };
+  [{ Utils.line = 10; col = 19 }; { Utils.line = 10; col = 16 };
     { Utils.line = 6; col = 10 }]
   }
 Processing ./.test.eobjs/byte/dune__exe__Library.cmt (3/5)
