@@ -31,7 +31,7 @@ let conf_file =
 
 let patch_file =
   let doc =
-    "Filename used as either input or output for the patch file."
+    "Filename used as output for the patch file."
   in
   Arg.(value & opt (some string) None & info ["p"; "patch"] ~doc)
 
@@ -89,7 +89,12 @@ let patch =
     let doc = "File of the saved patches." in
     Arg.(required & pos 0 (some file) None & info [] ~docv:"PATCH_FILE" ~doc)
   in
-  let term = Term.(const Closelib.Patch.apply_saved $ filename)
+  let inplace =
+    let doc = "Patch the files in place. Be careful." in
+    Arg.(value & flag & info ~doc ["i"; "inplace"])
+  in
+  let apply f inplace = Closelib.Patch.apply_saved f ~inplace in
+  let term = Term.(const apply $ filename $ inplace)
              |> Term.term_result in
   (term, Term.info "patch" ~doc)
 

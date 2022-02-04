@@ -7,18 +7,13 @@ type open_summary = {
   chunk : chunk;
   ghost_use : bool;
   total : int;
-  symbols : string list;
-  layer_only : bool;
-  imports_syntax : bool;
+  symbols : (string * Typed.Open_uses.use_kind) list;
   scope_lines : int;
   optimal_pos : pos;
   dist_to_optimal : int;
   functions : pos list option;
   use_sites : pos list;
 }[@@deriving show]
-
-(* Ugly heuristic for detecting that a name is from a module *)
-let is_module_id id = Char.is_uppercase id.[0]
 
 (* Ugly heuristic for detecting infix and prefix operators *)
 let is_operator_id id =
@@ -29,38 +24,32 @@ let is_operator_id id =
     ))
 
 (* Fully analyse an open t and its use sites, systematically *)
-let compute_summary tree (t, use_sites) =
-  let chunk = Typed.Open_info.get_chunk t in
-  let scope_lines = Typed.Find.scope_lines tree t in
-  let* name = Typed.Open_info.get_name t in
-  let* short_name = Typed.Open_info.get_short_name t in
-  let total = List.length use_sites in
-  let h = Hashtbl.create (module String) in
-  List.map ~f:fst use_sites
-  |> List.iter ~f:(Hashtbl.incr h);
-  let ghost_use = Typed.Open_uses.has_ghost_uses use_sites in
-  let optimal_pos = Typed.Open_uses.optimal_global_position tree use_sites in
+let compute_summary tree (t, uses) =
+  let open Typed in
+  let chunk = Open_info.get_chunk t in
+  let scope_lines = Find.scope_lines tree t in
+  let* name = Open_info.get_name t in
+  let* short_name = Open_info.get_short_name t in
+  let total = List.length uses in
+  let h = Hashtbl.Poly.create () in
+  List.iter uses ~f:(fun x -> Hashtbl.Poly.incr h Open_uses.(x.name, x.kind));
+  let ghost_use = Open_uses.has_ghost_uses uses in
+  let optimal_pos = Open_uses.optimal_global_position tree uses in
   let dist_to_optimal =
     let opos = chunk.ch_begin in
     Int.abs (opos.line - optimal_pos.line)
   in
-  let functions = Option.map (Typed.Open_uses.by_function tree use_sites) ~f:Hashtbl.keys in
-  let use_sites = List.map use_sites ~f:(fun loc ->
-      (Typed.chunk_of_loc (snd loc)).ch_begin
+  let functions =
+    Option.map (Open_uses.by_function tree uses) ~f:Hashtbl.keys in
+  let use_sites = List.map uses ~f:(fun {loc; _} ->
+      (chunk_of_loc loc).ch_begin
     )
   in
   let symbols = Hashtbl.keys h in
-  let layer_only =
-    Hashtbl.keys h
-    |> List.for_all ~f:is_module_id
-  in
-  let imports_syntax = 
-    Hashtbl.keys h
-    |> List.exists ~f:is_operator_id
-  in
-  Result.return {module_name = name; total; scope_lines; symbols; layer_only;
-                 imports_syntax; chunk; short_name; optimal_pos; dist_to_optimal;
-                 functions; use_sites; ghost_use}
+  Result.return
+    {module_name = name; total; scope_lines; symbols;
+     chunk; short_name; optimal_pos; dist_to_optimal;
+     functions; use_sites; ghost_use}
 
 let print_decision filename sum =
   let open Conf in
@@ -78,7 +67,8 @@ let print_decision filename sum =
         Stdio.printf "move open %s from line %d to line %d\n"
           mod_name line sum.optimal_pos.line
       | Structure ->
-        let symbols = "[" ^ (String.concat ~sep:", " sum.symbols) ^ "]" in
+        let names = List.map ~f:fst sum.symbols in
+        let symbols = "[" ^ (String.concat ~sep:", " names) ^ "]" in
         print_file ();
         Stdio.printf "explicitly open values %s from %s at line %d\n"
           symbols mod_name line
@@ -120,9 +110,40 @@ let patch_of_decision filename sum decision =
         Patch.insert to_insert ~at:pos patch
       )
   | Structure -> 
-    Patch.invalid "transformation into explicit structures\
-    cannot yet be automatically applied"
-    (* TODO, must know if uses are values, modules, types *)
+    let patch = Patch.delete ~chunk:sum.chunk patch in
+    let open Caml.Format in
+    let pp_value fmt (name, kind) =
+      let open Typed.Open_uses in
+      match kind with
+      | Uk_Type 0 ->
+        (* type t = t is cyclic, even with an open *)
+        fprintf fmt "type %s = %s.%s" name sum.short_name name
+      | Uk_Type n ->
+        (* For arity > 0, write "type ('t1, ...) t = ('t1, ...) M.t" *)
+        let arity_args =
+          List.range 1 (n + 1)
+          |> List.map ~f:(fun x -> Printf.sprintf "'t%d" x)
+        in
+        let arity_str = asprintf "(%a)"
+            (pp_print_list ~pp_sep:(fun fmt () -> pp_print_string fmt ", ")
+               pp_print_string) arity_args
+        in
+        fprintf fmt "type %s %s = %s %s.%s"
+          arity_str name arity_str sum.short_name name
+      | _ ->
+        let kind = match kind with
+          | Uk_Module -> "module"
+          | Uk_Value -> "let"
+          | Uk_Module_Type -> "module type"
+          | Uk_Type _ -> assert false
+        in fprintf fmt "%s %s = %s" kind name name
+    in
+    (* here, just leverage the open *)
+    let to_insert = asprintf
+        "@[<v 2>open struct@,open %s@,%a@]@,end" sum.short_name
+        (pp_print_list ~pp_sep:pp_print_cut pp_value) sum.symbols
+    in
+    Patch.insert ~newline:true to_insert ~at:sum.chunk.ch_begin patch
 
 (* Supports wildcard in module name *)
 let module_name_equal a b =
@@ -179,9 +200,16 @@ let apply_rule tree rule sum =
     | True -> true
     | False -> false
     | In_list l -> List.mem l sum.module_name ~equal:module_name_equal
-    | Exports_syntax -> sum.imports_syntax
-    | Exports_modules -> failwith "Exports_modules not yet implemented"
-    | Exports_modules_only -> sum.layer_only
+    | Exports_syntax ->
+      List.exists sum.symbols ~f:(fun (name, _) -> is_operator_id name)
+    | Exports_modules ->
+      List.exists sum.symbols ~f:(fun (_, kind) -> Poly.(kind = Uk_Module))
+    | Exports_modules_only ->
+      List.for_all sum.symbols ~f:(fun (_, kind) -> Poly.(kind = Uk_Module))
+    | Exports_subvalues ->
+      List.exists sum.symbols ~f:(fun (name, _) ->
+          String.exists name ~f:(fun c -> Char.(c = '.'))
+        )
     | Ghost_use -> sum.ghost_use
   in apply rule
 
@@ -204,7 +232,8 @@ module Progress_bar = struct
   let config = Config.(v ~persistent:false ())
   let bar1 ~total = Line.(list [ 
       const "Files";
-      bar ~style:`UTF8 ~width:(`Fixed 60) ~color:Terminal.Color.(hex "#FA0") total;
+      bar ~style:`UTF8 ~width:(`Fixed 60)
+        ~color:Terminal.Color.(hex "#FA0") total;
       count_to total
     ])
   let bar2 = Line.(list [ 
