@@ -1,6 +1,7 @@
 module A = struct
   let x = ()
   let y = ()
+  let z = ()
   module S = struct
     let s = ()
   end
