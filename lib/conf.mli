@@ -28,6 +28,7 @@ type rule =
   | Exports_modules
   | Exports_modules_only
   | Exports_subvalues
+  | Exports_types
   | Ghost_use
 
 type rule_kind = Keep | Remove | Local | Move | Structure

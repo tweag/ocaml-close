@@ -210,6 +210,11 @@ let apply_rule tree rule sum =
       List.exists sum.symbols ~f:(fun (name, _) ->
           String.exists name ~f:(fun c -> Char.(c = '.'))
         )
+    | Exports_types ->
+      List.exists sum.symbols ~f:(function
+          | _, Uk_Type _ -> true
+          | _ -> false
+        )
     | Ghost_use -> sum.ghost_use
   in apply rule
 
