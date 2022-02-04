@@ -343,10 +343,9 @@ module Open_uses = struct
     in
     (* explicit type annotation *)
     let typ it typ =
-      let f = f typ.ctyp_loc in
       begin match typ.ctyp_desc with
-        | Ttyp_constr (path, {txt; _}, args) ->
-          f ~txt (Uk_Type (List.length args)) path
+        | Ttyp_constr (path, {txt; loc}, args) ->
+          f loc ~txt (Uk_Type (List.length args)) path
         | _ -> ()
       end; super.typ it typ
     in
