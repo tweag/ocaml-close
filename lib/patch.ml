@@ -59,7 +59,7 @@ let apply_single (lines : Piece_table.t Array.t) = function
 
 let suggested_suffix = ".close.ml"
 
-let apply =
+let apply ?(inplace=false) =
   function
   | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
   | Valid {actions; filename} ->
@@ -67,7 +67,9 @@ let apply =
       if List.is_empty actions then Result.return ()
       else (
         Stdio.printf "- Patching %s...\n%!" filename;
-        let out_filename = filename ^ suggested_suffix in
+        let out_filename =
+          if inplace then filename else filename ^ suggested_suffix
+        in
         let is_empty_str = String.for_all ~f:Char.is_whitespace in
         let lines =
           Stdio.In_channel.read_lines filename
@@ -110,9 +112,13 @@ let imports filename =
   let sexps = Sexp.load_sexps filename in
   List.map sexps ~f:t_of_sexp
 
-let apply_saved filename =
-  Stdio.printf
-    "Applying recommendations; modified files will be suffixed with %s...\n%!"
-    suggested_suffix;
+let apply_saved ?(inplace=false) filename =
+  if inplace then
+    Stdio.printf "Applying recommendations INPLACE!!\n%!"
+  else
+    Stdio.printf
+      "Applying recommendations; modified files will be suffixed with %s...\n%!"
+      suggested_suffix;
   let patches = imports filename in
-  map_result patches ~f:apply |> Result.map ~f:ignore |> filter_errors
+  map_result patches ~f:(apply ~inplace)
+  |> Result.map ~f:ignore |> filter_errors

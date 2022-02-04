@@ -4,6 +4,7 @@ module A = struct
   module S = struct
     let s = ()
   end
+  type t = T1 | T2
 end
 
 module B = struct

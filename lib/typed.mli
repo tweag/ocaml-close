@@ -39,7 +39,13 @@ end
 (** For gathering the use-sites of an [open Module]. *)
 module Open_uses : sig
   type use_loc
-  type use = (string * use_loc)
+  type use_kind =
+    | Uk_Module
+    | Uk_Module_Type
+    | Uk_Value
+    | Uk_Type of int (* arity of type *)
+  [@@deriving show]
+  type use = {name : string; loc : use_loc; kind : use_kind}
 
   val compute : Extraction.t -> Open_info.t
     -> use list Utils.res

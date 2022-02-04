@@ -24,7 +24,7 @@ val merge : t -> t -> t
 (** Merge two patches. The two patches must apply to the same file and be both
     valid. *)
 
-val apply : t -> unit Utils.res
+val apply : ?inplace:bool -> t -> unit Utils.res
 (** Apply a patch by creating an edited copy of the original file next to it,
     suffixed with .close.ml *)
 
@@ -37,5 +37,5 @@ val exports : t list -> string -> unit
 val imports : string -> t list
 (** Import previously exported patches *)
 
-val apply_saved : string -> (unit, [`Msg of string]) result
+val apply_saved : ?inplace:bool -> string -> (unit, [`Msg of string]) result
 (** Import patches saved in a file *)

@@ -311,7 +311,11 @@ end
 
 module Open_uses = struct
   type use_loc = Location.t
-  type use = (string * use_loc)
+
+  type use_kind = Uk_Module | Uk_Module_Type | Uk_Value | Uk_Type of int
+  [@@deriving show]
+
+  type use = {name : string; loc : use_loc; kind : use_kind}
 
   (* TODO if nested opens are about the same module,
    * either discard nested ones, recommend to remove
@@ -322,7 +326,7 @@ module Open_uses = struct
   let f_if_constr f t =
     let open Types in
     match t.desc with
-    | Tconstr (path, _, _) -> f path
+    | Tconstr (path, args, _) -> f (Uk_Type (List.length args)) path
     | _ -> ()
 
   let check_constructor f desc = f_if_constr f desc.Types.cstr_res
@@ -343,15 +347,16 @@ module Open_uses = struct
     let typ it typ =
       let f = f typ.ctyp_loc in
       begin match typ.ctyp_desc with
-      | Ttyp_constr (path, _, _) -> f path
+      | Ttyp_constr (path, _, args) ->
+        f (Uk_Type (List.length args)) path
       | _ -> ()
       end; super.typ it typ
     in
     let pat (type k) it (p : k general_pattern) =
       let f = f p.pat_loc in
       List.iter p.pat_extra ~f:(fun (pe, _, _) -> match pe with
-          | Tpat_type (path, _)
-          | Tpat_open (path, _, _) -> f path
+          | Tpat_type (path, _) -> f (Uk_Type 0) path 
+          | Tpat_open (path, _, _) -> f Uk_Module path
           | _ -> ()
         );
       begin match p.pat_desc with
@@ -365,12 +370,13 @@ module Open_uses = struct
       let f = f e.exp_loc in
       if List.is_empty e.exp_attributes then
         begin match e.exp_desc with
-          | Texp_instvar (path1, path2, _) -> f path1; f path2
+          | Texp_instvar (path1, path2, _) ->
+            f Uk_Value path1; f Uk_Value path2
           | Texp_ident (path, _, _)
           | Texp_new (path, _, _) 
           | Texp_override (path, _)
-          | Texp_extension_constructor (_, path) -> f path
-          | Texp_letop {let_; _} -> f let_.bop_op_path
+          | Texp_extension_constructor (_, path) -> f Uk_Value path
+          | Texp_letop {let_; _} -> f Uk_Value let_.bop_op_path
           | Texp_construct (_, cons_desc, _) -> check_constructor f cons_desc
           | Texp_field (_, _, lab_desc)
           | Texp_setfield (_, _, lab_desc, _) -> check_label f lab_desc
@@ -382,13 +388,13 @@ module Open_uses = struct
     in
     let module_expr it m =
       begin match m.mod_desc with
-        | Tmod_ident (path, _) -> f m.mod_loc path
+        | Tmod_ident (path, _) -> f m.mod_loc Uk_Module path
         | _ -> ()
       end; super.module_expr it m
     in
     let module_type it m =
       begin match m.mty_desc with
-        | Tmty_ident (path, _) -> f m.mty_loc path
+        | Tmty_ident (path, _) -> f m.mty_loc Uk_Module_Type path
         | _ -> ()
       end; super.module_type it m
     in
@@ -410,7 +416,6 @@ module Open_uses = struct
 
 
   let compute t o =
-    (* Format.printf "%a@." Printtyped.implementation t; *)
     let check_scope =
       let oloc = Find.enclosing_structure [o.open_loc] t |> Extraction.loc in
       fun loc -> Find.location_enclosed ~outer:oloc loc
@@ -423,15 +428,17 @@ module Open_uses = struct
       | _, _ -> None
     in
     let uses = ref [] in
-    let f loc vpath = 
+    let f loc kind vpath = 
       begin
         if check_scope loc then
           let* osegs = segs_of_path opath in
           let* vsegs = segs_of_path vpath in
           match matches osegs vsegs with
           | Some suffix ->
-            let suffix = String.concat ~sep:"." suffix in
-            Result.return (uses := (suffix, loc) :: !uses)
+            let name = String.concat ~sep:"." suffix in
+            let use = {name; loc; kind} in
+            uses := use :: !uses;
+            Result.return ()
           | None -> Result.return ()
         else Result.return ()
       end |> ignore (* Silence individual errors, no need to stop everything *)
@@ -441,7 +448,7 @@ module Open_uses = struct
     with Failure e -> Result.fail e
 
   let optimal_global_position t uses =
-    let use_locs = List.map ~f:snd uses in
+    let use_locs = List.map ~f:(fun x -> x.loc) uses in
     let closest_structure = Find.enclosing_structure use_locs t in
     let compare l1 l2 =
       let open Warnings in
@@ -468,7 +475,7 @@ module Open_uses = struct
 
   let by_function t uses =
     (* try to find first non-ghost expression to have the right pos *)
-    let locs = List.map ~f:snd uses in
+    let locs = List.map ~f:(fun x -> x.loc) uses in
     let functions = Find.enclosing_functions locs t in
     if List.exists functions ~f:Option.is_none then None
     else
@@ -491,5 +498,5 @@ module Open_uses = struct
       if !ok then Some h else None
 
   let has_ghost_uses uses =
-    List.exists uses ~f:(fun (_, loc) -> loc.Warnings.loc_ghost)
+    List.exists uses ~f:(fun {loc; _} -> loc.Warnings.loc_ghost)
 end
