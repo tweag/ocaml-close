@@ -93,8 +93,13 @@ let patch =
     let doc = "Patch the files in place. Be careful." in
     Arg.(value & flag & info ~doc ["i"; "inplace"])
   in
-  let apply f inplace = Closelib.Patch.apply_saved f ~inplace in
-  let term = Term.(const apply $ filename $ inplace)
+  let check =
+    let doc = "Check the patched file builds, and revert changes if not." in
+    Arg.(value & flag & info ~doc ["c"; "check"])
+  in
+  let apply f inplace check =
+    Closelib.Patch.apply_saved f ~inplace ~check in
+  let term = Term.(const apply $ filename $ inplace $ check)
              |> Term.term_result in
   (term, Term.info "patch" ~doc)
 

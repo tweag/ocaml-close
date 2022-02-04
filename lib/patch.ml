@@ -56,21 +56,21 @@ let apply_single (lines : Piece_table.t Array.t) = function
 
 let suggested_suffix = ".close.ml"
 
-let apply ?(inplace=false) =
+let apply ?(inplace=false) ?(check=false) =
   function
   | Invalid s -> Result.failf "Couldn't apply an invalid patch: %s" s
   | Valid {actions; filename} ->
     try
       if List.is_empty actions then Result.return ()
       else (
-        Stdio.printf "- Patching %s...\n%!" filename;
+        Stdio.printf "- Patching %s... %!" filename;
         let out_filename =
           if inplace then filename else filename ^ suggested_suffix
         in
         let is_empty_str = String.for_all ~f:Char.is_whitespace in
+        let orig_lines = Stdio.In_channel.read_lines filename in
         let lines =
-          Stdio.In_channel.read_lines filename
-          |> Array.of_list
+          Array.of_list orig_lines
           |> Array.map ~f:Piece_table.create
         in
         List.iter ~f:(apply_single lines) actions;
@@ -82,7 +82,23 @@ let apply ?(inplace=false) =
             else Some s
           )
         |> Stdio.Out_channel.write_lines out_filename;
-        Result.return ()
+        if check then (
+          let* f = Fpath.of_string filename |> norm_error in
+          let* relative, _ = Dune.find_cmt_location f in
+          match Dune.build_cmt relative with
+          | Ok () ->
+            let msg = "OK\n" in
+            Stdio.printf "\027[92m%s\027[0m%!" msg;
+            Result.return ()
+          | Error _ ->
+            let msg = "FAILED\n" in
+            Stdio.printf "\027[91m%s\027[0m%!" msg;
+            Stdio.Out_channel.write_lines out_filename orig_lines;
+            Result.return ()
+        ) else (
+          Stdio.printf "\n%!";
+          Result.return ()
+        )
       )
     with Sys_error s ->
       (* Catch if we're patching in the wrong place *)
@@ -109,7 +125,7 @@ let imports filename =
   let sexps = Sexp.load_sexps filename in
   List.map sexps ~f:t_of_sexp
 
-let apply_saved ?(inplace=false) filename =
+let apply_saved ?(inplace=false) ?check filename =
   if inplace then
     Stdio.printf "Applying recommendations INPLACE!!\n%!"
   else
@@ -117,5 +133,5 @@ let apply_saved ?(inplace=false) filename =
       "Applying recommendations; modified files will be suffixed with %s...\n%!"
       suggested_suffix;
   let patches = imports filename in
-  map_result patches ~f:(apply ~inplace)
+  map_result patches ~f:(apply ~inplace ?check)
   |> Result.map ~f:ignore |> filter_errors
