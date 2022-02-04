@@ -117,7 +117,7 @@ let patch_of_decision filename sum decision =
       match kind with
       | Uk_Type 0 ->
         (* type t = t is cyclic, even with an open *)
-        fprintf fmt "type %s = %s.%s" name sum.short_name name
+        fprintf fmt "type %s = [%%import: %s.%s]" name sum.short_name name
       | Uk_Type n ->
         (* For arity > 0, write "type ('t1, ...) t = ('t1, ...) M.t" *)
         let arity_args =
@@ -128,7 +128,7 @@ let patch_of_decision filename sum decision =
             (pp_print_list ~pp_sep:(fun fmt () -> pp_print_string fmt ", ")
                pp_print_string) arity_args
         in
-        fprintf fmt "type %s %s = %s %s.%s"
+        fprintf fmt "type %s %s = [%%import: %s %s.%s]"
           arity_str name arity_str sum.short_name name
       | _ ->
         let kind = match kind with

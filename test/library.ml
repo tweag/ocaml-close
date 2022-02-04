@@ -5,7 +5,7 @@ module A = struct
   module S = struct
     let s = ()
   end
-  type t = T1 | T2
+  type 'a t = T1 | T2 of 'a
 end
 
 module B = struct

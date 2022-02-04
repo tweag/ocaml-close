@@ -24,5 +24,6 @@
     cmdliner
     fpath
     progress
+    ppx_import
   )
 )
