@@ -40,7 +40,7 @@ Analyzing...
     ch_end = { Utils.line = 1; col = 14 } };
   ghost_use = false; total = 22;
   symbols =
-  [("x", Typed.Open_uses.Uk_Value); ("t", (Typed.Open_uses.Uk_Type 0))];
+  [("x", Typed.Open_uses.Uk_Value); ("t", (Typed.Open_uses.Uk_Type 1))];
   scope_lines = 77; optimal_pos = { Utils.line = 54; col = 0 };
   dist_to_optimal = 53;
   functions =

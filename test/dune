@@ -1,5 +1,7 @@
 (executable
-  (name test))
+  (name test)
+  (preprocess (staged_pps ppx_import ppx_deriving.show))
+  )
 
 (rule
   (targets tests.output)
