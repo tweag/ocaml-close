@@ -37,9 +37,6 @@ let invalid why = Invalid why
 
 let is_empty = function Valid t -> Base.List.is_empty t.actions | _ -> true
 
-(* TODO: when applying insert, DO NOT apply if string already exist at this
- * place *)
-
 let apply_single (lines : Piece_table.t Array.t) = function
   | Delete chunk ->
     let line_no = chunk.ch_begin.line in
