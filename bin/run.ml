@@ -48,15 +48,6 @@ let verbose =
   let doc = "Display debug messages (only when reporting mode is 'text')." in
   Arg.(value & flag & info ~doc ["v"; "verbose"])
 
-let info =
-  let doc = "analyse a program to detect opens that make it less legible" in
-  let man = [
-    `S Manpage.s_bugs;
-    `P "Email bug reports to virgile.robles@tweag.io or open
-        an issue at https://github.com/Firobe/ocaml-close/issues" ]
-  in
-  Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
-
 let pack_args command report conf_file
     skip_absent silence_errors verbose patch_file =
   let open Closelib in
@@ -109,7 +100,17 @@ let clean =
              |> Term.term_result in
   (term, Term.info "clean" ~doc)
 
-let default_t = fst lint
+let default_t = Term.ret (Term.const (`Help (`Auto, None)))
+
+let general_info =
+  let doc = "analyse a program to detect opens that make it less legible" in
+  let man = [
+    `S Manpage.s_bugs;
+    `P "Email bug reports to virgile.robles@tweag.io or open
+        an issue at https://github.com/Firobe/ocaml-close/issues" ]
+  in
+  Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
+
 
 let () =
-  Term.eval_choice (default_t, info) [lint; dump; patch; clean] |> Term.exit
+  Term.eval_choice (default_t, general_info) [lint; dump; patch; clean] |> Term.exit
