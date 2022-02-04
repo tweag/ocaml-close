@@ -38,3 +38,6 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/tweag/ocaml-close.git"
+pin-depends: [
+  ["feather" "git+https://github.com/charlesetc/feather.git"]
+]
