@@ -331,7 +331,8 @@ module Open_uses = struct
 
   let check_label f desc = f_if_constr f desc.Types.lbl_res
 
-  let path_iterator t (f : use_loc -> ?txt:Longident.t -> use_kind -> Path.t -> unit)  =
+  type f = use_loc -> ?txt:Longident.t -> use_kind -> Path.t -> unit
+  let path_iterator t (f : f) =
     let super = Tast_iterator.default_iterator in
     let attributed_types_locs = ref [] in
     let f loc =
