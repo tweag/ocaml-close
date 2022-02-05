@@ -37,10 +37,12 @@ The configuration has the following grammar, where `root` and `precedence`
 fields are optional:
 
 ```scheme
-(root)
-(precedence (KIND*))
+(root)?
+(placement PL_MODE)?
+(precedence (KIND*))?
 (rules RULE*)
 
+PL_MODE := scope | pos
 RULE := (KIND PRED)
 KIND := keep | remove | local | move | structure
 PRED :=
@@ -50,6 +52,7 @@ PRED :=
     | (or (PRED+))
     | (and (PRED+))
     | exports-syntax | exports-modules | exports-modules-only
+    | exports-subvalues | exports-types | ghost-use
     | in-list (<string>+)
     | (>= EXPR EXPR)
     | (<= EXPR EXPR)
@@ -78,6 +81,13 @@ purpose of each line.
 ```scheme
 (root) ; ocaml-close will not look for .ocamlclose files in parent directories
 
+; Determines what is the considered the optimal placement of a global open.
+; Either:
+;   - 'pos':   the position before the first actual use of the open is optimal
+;   - 'scope': the beginning of the smallest enclosing module of all the uses is
+;              optimal
+(placement pos)
+
 ; The order in which rules are matched
 ; (e.g., we keep opens matched by the 'keep' rule no matter the other rules)
 (precedence (keep remove local structure move))
@@ -97,20 +107,29 @@ purpose of each line.
         (<= scope-lines 40)))
 
   ; - removed, and its uses re-qualified, if...
-  ;   ... it is not used much and X is not too long.
-  (remove (and (<= uses 5) (<= name-length 15)))
+  ;   ... it is not used much and X is not too long and can be qualified easily.
+  (remove (and (<= uses 5) (<= name-length 15) (not ghost-use)))
 
   ; - replaced by an explicit structured open, if...
-  ;   ... it exports few different identifiers, which are quite used.
-  (structure (and (<= symbols 5) (>= uses 15)))
+  (structure
+    ;   ... it exports few different identifiers, and...
+    (and (<= symbols 5)
+         ; ... it is used enough times, and...
+         (>= uses 15)
+         ; ... it only exports direct symbols, not from submodules, and...
+         (not exports-subvalues)
+         ; ... it does not exports types (avoid using ppx_import).
+         (not exports-types)))
 
   ; - removed and replaced by local 'let open <X> in's if...
   ;   ... it is used only by only a few functions.
   (local (<= functions 4))
 
-  ; - moved closer to its first actual use if...
+  ; - moved closer to its optimal position (see 'placement' parameter), if...
   ;   ... it is too far from that optimal placement.
   (move (>= dist-to-optimal 40)))
+
+; vim: filetype=scheme
 ```
 
 ### Multiple files

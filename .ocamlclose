@@ -1,7 +1,10 @@
 (root) ; ocaml-close will not look for .ocamlclose files in parent directories
 
-; If moving an open, place at at its best position, even in the middle of a module.
-; To avoid this use 'scope' rather than 'pos'
+; Determines what is the considered the optimal placement of a global open.
+; Either:
+;   - 'pos':   the position before the first actual use of the open is optimal
+;   - 'scope': the beginning of the smallest enclosing module of all the uses is
+;              optimal
 (placement pos)
 
 ; The order in which rules are matched
@@ -41,7 +44,7 @@
   ;   ... it is used only by only a few functions.
   (local (<= functions 4))
 
-  ; - moved closer to its first actual use if...
+  ; - moved closer to its optimal position (see 'placement' parameter), if...
   ;   ... it is too far from that optimal placement.
   (move (>= dist-to-optimal 40)))
 
