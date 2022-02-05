@@ -5,6 +5,10 @@ open Typedtree
 let lines_of_loc loc =
   Warnings.(loc.loc_end.pos_lnum - loc.loc_start.pos_lnum + 1)
 
+(* Loc equality modulo ghost *)
+let loc_equal l1 l2 =
+  Warnings.(Poly.(l1.loc_start = l2.loc_start && l1.loc_end = l2.loc_end))
+
 module Extraction = struct
   type t = structure
 
@@ -34,6 +38,7 @@ module Extraction = struct
     | Error (Not_a_typedtree err)
     | Failure err -> parse_error err
 
+  (** TODO find first **non-ghost** location *)
   let loc t =
     if List.is_empty t.str_items then Location.none
     else
@@ -199,6 +204,24 @@ module Find = struct
     in
     let it = {super with expr} in
     it.expr it exp; !found
+
+  (* Gather the locs of all types that have deriving attributes,
+     as a heuristic for detecting PPX deriving *)
+  let attributed_type_locs t =
+    let found = ref [] in
+    let super = Tast_iterator.default_iterator in
+    let structure_item it si =
+      begin match si.str_desc with
+        | Tstr_type (_, typs) ->
+          List.iter typs ~f:(fun typ ->
+              if not @@ List.is_empty typ.typ_attributes then
+                found := typ.typ_loc :: !found
+            )
+        | _ -> ()
+      end; super.structure_item it si
+    in
+    let it = {super with structure_item} in
+    it.structure it t; !found
 end
 
 module Open_uses = struct
@@ -226,11 +249,11 @@ module Open_uses = struct
   type f = use_loc -> ?txt:Longident.t -> use_kind -> Path.t -> unit
   let path_iterator t (f : f) =
     let super = Tast_iterator.default_iterator in
-    let attributed_types_locs = ref [] in
+    let attributed_type_locs = Find.attributed_type_locs t in
     let f loc =
       (* Mark locations that are the same as attributed types as ghost, since
          they probably correspond to PPX locations *)
-      if List.mem !attributed_types_locs loc ~equal:Poly.equal then
+      if List.mem attributed_type_locs loc ~equal:loc_equal then
         f Warnings.{loc with loc_ghost = true}
       else f loc
     in
@@ -293,20 +316,7 @@ module Open_uses = struct
         | _ -> ()
       end; super.module_type it m
     in
-    (* Gather the locs of all types that have attributes,
-       as a heuristic for detecting PPX deriving *)
-    let structure_item it si =
-      begin match si.str_desc with
-        | Tstr_type (_, typs) ->
-          List.iter typs ~f:(fun typ ->
-              if not @@ List.is_empty typ.typ_attributes then
-                attributed_types_locs := typ.typ_loc :: !attributed_types_locs
-            )
-        | _ -> ()
-      end; super.structure_item it si
-    in
-    let it = {super with expr; pat; module_expr; typ;
-                         module_type; structure_item}
+    let it = {super with expr; pat; module_expr; typ; module_type}
     in it.structure it t
 
   let compute t o =
@@ -396,15 +406,20 @@ module Open_uses = struct
       let functions = List.filter_opt functions in
       let h = Hashtbl.Poly.create () in
       let ok = ref true in
+      let attrs = Find.attributed_type_locs t in
       List.iter2_exn locs functions ~f:(fun loc f ->
           (* Find first position after '=' *)
           match Find.first_real_expression f.vb_expr with
           | Some expr ->
-            (* Bail out if that location does not contain our use anymore... *)
-            if Find.location_enclosed ~outer:expr.exp_loc loc then
+            if not @@ Find.location_enclosed ~outer:expr.exp_loc loc then
+              (* Bail out if that location does not contain our use anymore... *)
+              ok := false
+            else if List.mem ~equal:loc_equal attrs loc then 
+              (* or if the final location seems to be in generated code *)
+              ok := false
+            else (* OK *)
               let pos = pos_of_lexpos expr.exp_loc.loc_start in
               Hashtbl.Poly.incr h pos
-            else ok := false
           | None ->
             (* Or if the location is completely ghost *)
             ok := false
