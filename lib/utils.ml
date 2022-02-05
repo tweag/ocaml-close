@@ -39,7 +39,7 @@ let find_file_s ?containing_folder name src =
   let* found = find_file ?containing_folder name srcf in
   Result.return (Fpath.to_string found)
 
-type pos = {line : int ; col : int}[@@deriving show, sexp]
+type pos = {line : int ; col : int}[@@deriving show, sexp, ord]
 type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show, sexp]
 
 let map_result ~f l = 
