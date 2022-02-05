@@ -149,6 +149,8 @@ module Find = struct
     let it = {super with structure} in
     it.structure it t; !best_candidate
 
+  (* The scope of an open is its smallest encloding module (including toplevel),
+   * restrained to values *after* the open statement *)
   let scope_of_open t op =
     let loc = op.open_loc in
     let surround_loc = enclosing_structure [loc] t |> Extraction.loc in
@@ -305,16 +307,10 @@ module Open_uses = struct
                          module_type; structure_item}
     in it.structure it t
 
-  (* The scope of an open is its smallest encloding module (including toplevel),
-   * restrained to values *after* the open statement *)
-  let scope t o =
-    let oloc = Find.enclosing_structure [o.open_loc] t |> Extraction.loc in
-    {oloc with loc_start = o.open_loc.loc_start}
-
   let compute t o =
     (** Function to check that candidate uses are really in the open scope *)
     let check_scope =
-      let scope = scope t o in
+      let scope = Find.scope_of_open t o in
       fun loc -> Find.location_enclosed ~outer:scope loc
     in
     let* opath = Open_info.get_path o in
