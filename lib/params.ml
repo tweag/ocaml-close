@@ -36,6 +36,7 @@ type t = {
   conf : string -> Conf.t;
   patch_file : string;
   skip_absent : bool;
+  print_tree : bool;
   silence_errors : bool;
   log : Log.t;
 }
@@ -49,5 +50,5 @@ let of_args (t : Utils.args) info =
   {
     conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
     command = t.command; log = Log.make t.report info t.verbose;
-    patch_file
+    patch_file; print_tree = t.print_tree
   }

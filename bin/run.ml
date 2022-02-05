@@ -48,18 +48,22 @@ let verbose =
   let doc = "Display debug messages (only when reporting mode is 'text')." in
   Arg.(value & flag & info ~doc ["v"; "verbose"])
 
+let print_tree =
+  let doc = "Print typed AST of input files for debugging purposes." in
+  Arg.(value & flag & info ~doc ["print-tree"])
+
 let pack_args command report conf_file
-    skip_absent silence_errors verbose patch_file =
+    skip_absent silence_errors verbose patch_file print_tree =
   let open Closelib in
   Utils.{report; conf_file; skip_absent; silence_errors;
-         command; verbose; patch_file}
+         command; verbose; patch_file; print_tree}
 
 let common_options behavior =
   let open Term in
   let open Closelib in
   let args =
     const pack_args $ (const behavior) $ report $ conf_file $ skip_absent
-    $ silence_errors $ verbose $ patch_file
+    $ silence_errors $ verbose $ patch_file $ print_tree
   in
   let applied = const Close.execute $ args $ filenames in
   term_result applied
