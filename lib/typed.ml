@@ -204,6 +204,10 @@ module Find = struct
     let expr it expr =
       if expr.exp_loc.loc_ghost then
         super.expr it expr
+      else if not @@ List.is_empty expr.exp_extra then
+        (* If the expression has additional (extra) type constraints, its
+         * location is unreliable. Find the next one (hacky) *)
+        super.expr it expr
       else found := Some expr
     in
     let it = {super with expr} in
