@@ -34,11 +34,11 @@ type rule =
 type rule_kind = Keep | Remove | Local | Move | Structure
 type placement_kind = Scope | Pos
 
-type conf = {
+type t = {
   root : bool;
   rules : (rule_kind * rule) list;
   placement : placement_kind;
   precedence : rule_kind list;
 }
 
-val read_conf : ?conf_file:string -> string -> conf
+val read_conf : ?conf_file:string -> string -> t 

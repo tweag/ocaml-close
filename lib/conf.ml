@@ -1,6 +1,5 @@
 open Core
 open Utils
-open Sexplib
 
 type expr =
   | Const of int
@@ -78,7 +77,7 @@ type rule_kind = Keep | Remove | Local | Move | Structure
 type rule_list = (rule_kind * rule) list[@@deriving sexp]
 type placement_kind = Scope | Pos [@@deriving sexp]
 
-type conf = {
+type t = {
   root : bool [@sexp.bool]; 
   rules : rule_list;
   placement : placement_kind [@default Pos];
@@ -87,12 +86,12 @@ type conf = {
 
 (** Simplify syntax *)
 let conf_of_sexpl l =
-  let open Sexp in
-  let l = List.map l ~f:(function
+  (*let open Sexp in*)
+  let l = List.map l ~f:Sexp.(function
       | List (Atom "rules" :: r) -> List [Atom "rules"; List r]
       | s -> s
   ) in
-  conf_of_sexp (List l)
+  t_of_sexp (List l)
 
 let default = {root = true; placement = Pos; rules = []; precedence = []}
 
@@ -165,5 +164,5 @@ let read_conf ?conf_file filename =
     Stdio.printf
       "Could not load configuration: %s.\n\
        Falling back to default config: %s.\n"
-      m (sexp_of_conf default |> Sexp.to_string_hum);
+      m (sexp_of_t default |> Sexp.to_string_hum);
     default

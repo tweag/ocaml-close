@@ -10,7 +10,7 @@ end
 
 type t = {
   command : Utils.command;
-  conf : string -> Conf.conf;
+  conf : string -> Conf.t;
   patch_file : string;
   skip_absent : bool;
   silence_errors : bool;
