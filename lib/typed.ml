@@ -39,11 +39,14 @@ module Extraction = struct
     | Failure err -> parse_error err
 
   let loc t =
+    (** TODO find another way to get structure module,
+     * potentially by carrying the loc around in Find (found in
+     * module_expressions *)
     if List.is_empty t.str_items then Location.none
     else
       let non_ghost =
         List.filter ~f:(fun x -> not x.str_loc.loc_ghost) t.str_items in
-      match (List.hd non_ghost, List.last non_ghost) with
+      match (List.hd non_ghost, List.last t.str_items) with
       | Some first, Some last ->
         let loc = first.str_loc in
         let loc_end = last.str_loc.loc_end in
@@ -368,7 +371,7 @@ module Open_uses = struct
         List.iter ~f:(f loc Uk_Module) paths
       else
         begin
-          if check_scope loc then
+          if check_scope loc then (
             (* Path of the fully-qualified use *)
             let* vsegs = segs_of_path vpath in
             (* Path of the actual use *)
@@ -381,7 +384,7 @@ module Open_uses = struct
             then
               (* Use is under-qualified: its the use of another sub-open *)
               Result.return ()
-            else
+            else (
               (* Isolate the suffix *)
               match matches osegs vsegs with
               | Some suffix ->
@@ -389,8 +392,10 @@ module Open_uses = struct
                 let use = {name; loc; kind} in
                 uses := use :: !uses;
                 Result.return ()
-              | None -> Result.return ()
-          else Result.return ()
+              | None ->
+                Result.return ()
+            )
+        ) else Result.return ()
         end |> ignore (* Silence individual errors, no need to stop everything *)
     in
     try
