@@ -218,6 +218,13 @@ let apply_rule tree rule sum =
           | _ -> false
         )
     | Ghost_use -> sum.ghost_use
+    | Optimal_is_before ->
+      (* TODO check eligibility of move before, rather than this hack
+       * This can be done by checking that the optimal pos actually have the
+       * short_name in its environment (or even computing the optimal pos this
+       * way to begin with *)
+      let opos = sum.chunk.ch_begin in
+      sum.optimal_pos.line - opos.line < 0
   in apply rule
 
 let make_decision tree conf sum =

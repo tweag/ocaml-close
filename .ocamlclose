@@ -45,7 +45,7 @@
   (local (<= functions 4))
 
   ; - moved closer to its optimal position (see 'placement' parameter), if...
-  ;   ... it is too far from that optimal placement.
-  (move (>= dist-to-optimal 40)))
+  ;   ... it is too far from that optimal placement, or after it.
+  (move (and (>= dist-to-optimal 40) (not optimal-is-before))))
 
 ; vim: filetype=scheme

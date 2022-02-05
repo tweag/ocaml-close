@@ -50,6 +50,7 @@ type rule =
   | Exports_subvalues
   | Exports_types
   | Ghost_use
+  | Optimal_is_before
 [@@deriving sexp_of]
 
 let rec rule_of_sexp =
@@ -69,6 +70,7 @@ let rec rule_of_sexp =
     | Atom "exports-subvalues" -> Exports_subvalues
     | Atom "exports-types" -> Exports_types
     | Atom "ghost-use" -> Ghost_use
+    | Atom "optimal-is-before" -> Optimal_is_before
     | s -> Stdio.printf "Unexpected token: %s\n" (Sexp.to_string s); failwith "Not a rule"
 
 type rule_kind = Keep | Remove | Local | Move | Structure
