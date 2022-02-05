@@ -236,21 +236,8 @@ module Open_uses = struct
 
   type use = {name : string; loc : use_loc; kind : use_kind}
 
-  (* TODO if nested opens are about the same module,
-   * either discard nested ones, recommend to remove
-   * or analyse each independently, and reduce the scope of the outer ones.
-   * ALSO do it for local opens, so as to not count uses
-   * For example:
-   * open A (* contains a module B which contains value x *)
-   *
-   * let f =
-   *  let open B in (* is a use *)
-   *  x             (* is NOT a use *)
-   * *)
-  (* This is probably two separated problems:
-   * - detect opens that open the SAME module
-   * - detect opens that USE opened module to open a submodule, and track depds
-   * correctly*)
+  (* TODO if we encounter a (local or global) open for the same module, warn
+   * that it is subsumed *)
 
   let f_if_constr f t =
     let open Types in
@@ -364,6 +351,11 @@ module Open_uses = struct
           let isegs = Longident.flatten txt in
           if Option.is_some (matches sosegs isegs) then
             (* Use is already qualified, skip *)
+            Result.return ()
+          else if not @@ String.is_empty (Longident.last txt) &&
+                  List.(length vsegs <> length osegs + length isegs)
+          then
+            (* Use is under-qualified: its the use of another sub-open *)
             Result.return ()
           else
             (* Isolate the suffix *)
