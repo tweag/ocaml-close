@@ -30,6 +30,7 @@ type rule =
   | Exports_subvalues
   | Exports_types
   | Ghost_use
+  | Optimal_is_before
 
 type rule_kind = Keep | Remove | Local | Move | Structure
 type placement_kind = Scope | Pos
