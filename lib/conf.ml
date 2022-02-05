@@ -76,10 +76,12 @@ type rule_kind = Keep | Remove | Local | Move | Structure
 [@@deriving sexp]
 
 type rule_list = (rule_kind * rule) list[@@deriving sexp]
+type placement_kind = Scope | Pos [@@deriving sexp]
 
 type conf = {
   root : bool [@sexp.bool]; 
   rules : rule_list;
+  placement : placement_kind [@default Pos];
   precedence : rule_kind list [@sexp.list];
 }[@@deriving sexp]
 
@@ -92,7 +94,7 @@ let conf_of_sexpl l =
   ) in
   conf_of_sexp (List l)
 
-let default = {root = true; rules = []; precedence = []}
+let default = {root = true; placement = Pos; rules = []; precedence = []}
 
 let conf_file_name = ".ocamlclose"
 

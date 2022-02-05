@@ -32,10 +32,12 @@ type rule =
   | Ghost_use
 
 type rule_kind = Keep | Remove | Local | Move | Structure
+type placement_kind = Scope | Pos
 
 type conf = {
   root : bool;
   rules : (rule_kind * rule) list;
+  placement : placement_kind;
   precedence : rule_kind list;
 }
 

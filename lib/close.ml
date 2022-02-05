@@ -10,7 +10,6 @@ type open_summary = {
   symbols : (string * Typed.Open_uses.use_kind) list;
   scope_lines : int;
   optimal_pos : pos;
-  dist_to_optimal : int;
   functions : pos list option;
   use_sites : pos list;
 }[@@deriving show]
@@ -24,7 +23,7 @@ let is_operator_id id =
     ))
 
 (* Fully analyse an open t and its use sites, systematically *)
-let compute_summary tree (t, uses) =
+let compute_summary tree conf (t, uses) =
   let open Typed in
   let chunk = Open_info.get_chunk t in
   let scope_lines = Find.scope_lines tree t in
@@ -34,10 +33,10 @@ let compute_summary tree (t, uses) =
   let h = Hashtbl.Poly.create () in
   List.iter uses ~f:(fun x -> Hashtbl.Poly.incr h Open_uses.(x.name, x.kind));
   let ghost_use = Open_uses.has_ghost_uses uses in
-  let optimal_pos = Open_uses.optimal_global_position tree uses in
-  let dist_to_optimal =
-    let opos = chunk.ch_begin in
-    Int.abs (opos.line - optimal_pos.line)
+  let optimal_pos =
+    match conf.Conf.placement with
+    | Pos -> Open_uses.optimal_global_position tree uses
+    | Scope -> Open_uses.optimal_scoped_position tree uses
   in
   let functions =
     Option.map (Open_uses.by_function tree uses) ~f:Hashtbl.keys in
@@ -48,8 +47,7 @@ let compute_summary tree (t, uses) =
   let symbols = Hashtbl.keys h in
   Result.return
     {module_name = name; total; scope_lines; symbols;
-     chunk; short_name; optimal_pos; dist_to_optimal;
-     functions; use_sites; ghost_use}
+     chunk; short_name; optimal_pos; functions; use_sites; ghost_use}
 
 let print_decision filename sum =
   let open Conf in
@@ -177,7 +175,9 @@ let apply_rule tree rule sum =
     | Symbols -> List.length sum.symbols
     | File_lines -> Typed.Extraction.source_lines tree
     | Scope_lines -> sum.scope_lines
-    | Dist_to_optimal -> sum.dist_to_optimal
+    | Dist_to_optimal ->
+      let opos = sum.chunk.ch_begin in
+      Int.abs (opos.line - sum.optimal_pos.line)
     | Functions ->
       begin match sum.functions with
         | None -> Int.max_value
@@ -221,7 +221,8 @@ let apply_rule tree rule sum =
 let make_decision tree conf sum =
   let open Conf in
   let answers =
-    List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum)) conf.rules
+    List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum))
+      conf.rules
   in
   (* Find the first matching rule, with the given precedence. Keep is nothing
      matches *)
@@ -249,13 +250,13 @@ module Progress_bar = struct
 end
 
 (* Detect all opens in the tree and analyse them *)
-let get_summaries tree params =
+let get_summaries tree conf params =
   let open Params in
   let opens = Typed.Open_info.gather tree in
   params.log.change "Analyzing";
   List.map opens ~f:(fun x ->
       let* use_sites = Typed.Open_uses.compute tree x in
-      compute_summary tree (x, use_sites)
+      compute_summary tree conf (x, use_sites)
     )
   (* Filter out failing opens *)
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
@@ -273,8 +274,8 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
   begin
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
-    let* summaries = get_summaries tree params in
     let conf = params.conf filename in
+    let* summaries = get_summaries tree conf params in
     let f sum : ty res = match com with
       | Cmd_lint ->
         let decision = make_decision tree conf sum in

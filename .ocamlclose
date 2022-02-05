@@ -1,5 +1,9 @@
 (root) ; ocaml-close will not look for .ocamlclose files in parent directories
 
+; If moving an open, place at at its best position, even in the middle of a module.
+; To avoid this use 'scope' rather than 'pos'
+(placement pos)
+
 ; The order in which rules are matched
 ; (e.g., we keep opens matched by the 'keep' rule no matter the other rules)
 (precedence (keep remove local structure move))
