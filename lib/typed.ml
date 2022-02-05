@@ -326,6 +326,14 @@ module Open_uses = struct
     let it = {super with expr; pat; module_expr; typ; module_type}
     in it.structure it t
 
+  let rec largest_subpaths p =
+    if Poly.(Path.flatten p = `Contains_apply) then
+      match p with
+      | Pident _ -> assert false
+      | Pdot (p, _) -> largest_subpaths p
+      | Papply (p1, p2) -> largest_subpaths p1 @ largest_subpaths p2
+    else [p]
+
   let compute t o =
     (** Function to check that candidate uses are really in the open scope *)
     let check_scope =
@@ -346,32 +354,40 @@ module Open_uses = struct
     let* sosegs = Open_info.get_ident o in
     let sosegs = Longident.flatten sosegs in
     (* Function applied on each potential use *)
-    let f loc ?(txt=Longident.Lident "") kind vpath = 
-      begin
-        if check_scope loc then
-          (* Path of the fully-qualified use *)
-          let* vsegs = segs_of_path vpath in
-          (* Path of the actual use *)
-          let isegs = Longident.flatten txt in
-          if Option.is_some (matches sosegs isegs) then
-            (* Use is already qualified, skip *)
-            Result.return ()
-          else if not @@ String.is_empty (Longident.last txt) &&
-                  List.(length vsegs <> length osegs + length isegs)
-          then
-            (* Use is under-qualified: its the use of another sub-open *)
-            Result.return ()
-          else
-            (* Isolate the suffix *)
-            match matches osegs vsegs with
-            | Some suffix ->
-              let name = String.concat ~sep:"." suffix in
-              let use = {name; loc; kind} in
-              uses := use :: !uses;
+    let rec f loc ?(txt=Longident.Lident "") kind vpath = 
+      (* if the path contains a functor application that cannot have been found
+       * by the iterator (because it's a type), find the largest subpaths
+       * in it *)
+      let is_type = match kind with Uk_Type _ -> true | _ -> false in
+      if is_type && Poly.(Path.flatten vpath = `Contains_apply) then
+        let paths = largest_subpaths vpath in
+        List.iter ~f:(f loc Uk_Module) paths
+      else
+        begin
+          if check_scope loc then
+            (* Path of the fully-qualified use *)
+            let* vsegs = segs_of_path vpath in
+            (* Path of the actual use *)
+            let isegs = Longident.flatten txt in
+            if Option.is_some (matches sosegs isegs) then
+              (* Use is already qualified, skip *)
               Result.return ()
-            | None -> Result.return ()
-        else Result.return ()
-      end |> ignore (* Silence individual errors, no need to stop everything *)
+            else if not @@ String.is_empty (Longident.last txt) &&
+                    List.(length vsegs <> length osegs + length isegs)
+            then
+              (* Use is under-qualified: its the use of another sub-open *)
+              Result.return ()
+            else
+              (* Isolate the suffix *)
+              match matches osegs vsegs with
+              | Some suffix ->
+                let name = String.concat ~sep:"." suffix in
+                let use = {name; loc; kind} in
+                uses := use :: !uses;
+                Result.return ()
+              | None -> Result.return ()
+          else Result.return ()
+        end |> ignore (* Silence individual errors, no need to stop everything *)
     in
     try
       path_iterator t f; Result.return (!uses)
