@@ -238,7 +238,19 @@ module Open_uses = struct
 
   (* TODO if nested opens are about the same module,
    * either discard nested ones, recommend to remove
-   * or analyse each independently, and reduce the scope of the outer ones *)
+   * or analyse each independently, and reduce the scope of the outer ones.
+   * ALSO do it for local opens, so as to not count uses
+   * For example:
+   * open A (* contains a module B which contains value x *)
+   *
+   * let f =
+   *  let open B in (* is a use *)
+   *  x             (* is NOT a use *)
+   * *)
+  (* This is probably two separated problems:
+   * - detect opens that open the SAME module
+   * - detect opens that USE opened module to open a submodule, and track depds
+   * correctly*)
 
   let f_if_constr f t =
     let open Types in
