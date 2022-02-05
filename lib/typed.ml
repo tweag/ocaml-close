@@ -38,13 +38,17 @@ module Extraction = struct
     | Error (Not_a_typedtree err)
     | Failure err -> parse_error err
 
-  (** TODO find first **non-ghost** location *)
   let loc t =
     if List.is_empty t.str_items then Location.none
     else
-      let loc = (List.hd_exn t.str_items).str_loc in
-      let loc_end = (List.last_exn t.str_items).str_loc.loc_end in
-      {loc with loc_end}
+      let non_ghost =
+        List.filter ~f:(fun x -> not x.str_loc.loc_ghost) t.str_items in
+      match (List.hd non_ghost, List.last non_ghost) with
+      | Some first, Some last ->
+        let loc = first.str_loc in
+        let loc_end = last.str_loc.loc_end in
+        {loc with loc_end}
+      | _ -> Location.none
 
   let source_lines t = lines_of_loc (loc t)
 
