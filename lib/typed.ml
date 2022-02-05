@@ -357,6 +357,12 @@ module Open_uses = struct
       path_iterator t f; Result.return (!uses)
     with Failure e -> Result.fail e
 
+  let optimal_scoped_position t uses =
+    let use_locs = List.map ~f:(fun x -> x.loc) uses in
+    let closest_structure = Find.enclosing_structure use_locs t in
+    let loc = Extraction.loc closest_structure in
+    pos_of_lexpos loc.loc_start
+
   let optimal_global_position t uses =
     let use_locs = List.map ~f:(fun x -> x.loc) uses in
     let closest_structure = Find.enclosing_structure use_locs t in

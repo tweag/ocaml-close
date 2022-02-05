@@ -58,6 +58,11 @@ module Open_uses : sig
       structure item that captures all uses of an open (hence its optimal global
       position *)
 
+  val optimal_scoped_position : Extraction.t -> use list -> Utils.pos
+  (** Same as {!optimal_global_position}, except it will only return positions
+      that are at the beginning of a scope : it will not place an open in the
+      middle of a module. *)
+
   val by_function : Extraction.t -> use list -> (Utils.pos, int) Base.Hashtbl.t option
   (** [by_function tree uses] returns a categorization of the [uses] of an open
       in [tree] by their containing function. *)
