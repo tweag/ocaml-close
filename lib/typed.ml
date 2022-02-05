@@ -302,7 +302,11 @@ module Open_uses = struct
           | Texp_setfield (_, {txt; _}, lab_desc, _) ->
             check_label (f ~txt) lab_desc
           | Texp_record {fields; _} ->
-            Array.iter fields ~f:(fun (lab_desc, _) -> check_label f lab_desc)
+            Array.iter fields ~f:(fun (lab_desc, rec_lab) ->
+                match rec_lab with
+                | Kept _ -> check_label f lab_desc
+                | Overridden ({txt; _}, _) -> check_label (f ~txt) lab_desc
+              )
           | _ -> ()
         end;
       super.expr it e
