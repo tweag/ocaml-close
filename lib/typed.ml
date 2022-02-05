@@ -42,6 +42,8 @@ module Extraction = struct
       {loc with loc_end}
 
   let source_lines t = lines_of_loc (loc t)
+
+  let print t = Caml.Format.printf "@[<v 2>%a@]@," Printtyped.implementation t
 end
 
 let segs_of_path path = 

@@ -262,6 +262,8 @@ let get_summaries tree conf params =
   |> List.filter_map ~f:(function Ok o -> Some o | _ -> None)
   |> Result.return
 
+(* GADT version of the command type, to allow functions to return different
+ * objects depending on the command *)
 type 'a com =
   | Cmd_lint : Patch.t com
   | Cmd_dump : unit com
@@ -274,6 +276,7 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
   begin
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
+    if params.print_tree then Typed.Extraction.print tree;
     let conf = params.conf filename in
     let* summaries = get_summaries tree conf params in
     let f sum : ty res = match com with

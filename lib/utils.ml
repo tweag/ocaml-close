@@ -7,6 +7,7 @@ type command = [`Lint | `Dump]
 type args = {
   command : command;
   report : [`Bar | `Text | `None];
+  print_tree : bool;
   conf_file : string option;
   patch_file : string option;
   skip_absent : bool;

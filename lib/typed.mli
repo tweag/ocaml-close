@@ -15,6 +15,8 @@ module Extraction : sig
 
   val source_lines : t -> int
   (** Returns the total number of lines in the source file described by [t] *)
+
+  val print : t -> unit
 end
 
 (** Retrieval and simple manipulation of [open Module] information in the

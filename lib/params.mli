@@ -13,6 +13,7 @@ type t = {
   conf : string -> Conf.t;
   patch_file : string;
   skip_absent : bool;
+  print_tree : bool;
   silence_errors : bool;
   log : Log.t;
 }
