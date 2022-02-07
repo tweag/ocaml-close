@@ -161,7 +161,12 @@ let read_conf ?conf_file filename =
             Result.return data
         end
   in match do_try () with
-  | Ok c -> c
+  | Ok c ->
+    if List.is_empty c.precedence && not @@ List.is_empty c.rules then
+      Stdio.printf "Warning: there are rules defined but no precedence field. \
+                    Rules will never be matched!\n"
+    ;
+    c
   | Error m ->
     Stdio.printf
       "Could not load configuration: %s.\n\
