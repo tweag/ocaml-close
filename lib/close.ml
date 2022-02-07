@@ -233,7 +233,7 @@ let make_decision tree conf sum =
     List.map ~f:(fun (x, rule) -> (x, apply_rule tree rule sum))
       conf.rules
   in
-  (* Find the first matching rule, with the given precedence. Keep is nothing
+  (* Find the first matching rule, with the given precedence. Keep if nothing
      matches *)
   List.fold (List.rev conf.precedence) ~init:Keep ~f:(fun acc kind ->
       match List.Assoc.find ~equal:Poly.equal answers kind with
@@ -319,6 +319,8 @@ let one_file (type ty) params (com : ty com) filename : ty res =
     analyse params Cmd_dump filename |> ignore;
     Result.return ()
 
+type outcome = Nothing_to_do | Patches_needed | Failed
+
 let execute args filenames =
   let open Params in
   let total = List.length filenames in
@@ -335,29 +337,38 @@ let execute args filenames =
         let* patches =
           if args.silence_errors then
             List.filter_map patches ~f:(function
+                | Ok x when Patch.is_empty x -> None
                 | Ok x -> Some x
                 | Error _ -> None
               ) |> Result.return
           else
             Result.combine_errors patches
         in
-        Patch.exports patches params.patch_file;
-        Stdio.printf "Run 'ocamlclose patch %s' to apply modifications\n"
-          params.patch_file;
-        Result.return ()
+        if List.is_empty patches then (
+          Stdio.printf "No modification suggested. All good!\n";
+          Result.return Nothing_to_do
+        )
+        else (
+          Patch.exports patches params.patch_file;
+          let prog_name = (Sys.get_argv ()).(0) in
+          Stdio.printf
+            "Modification are needed. Run '%s patch %s' to apply them.\n"
+            prog_name params.patch_file;
+          Result.return Patches_needed
+        )
       | `Dump ->
-        List.map filenames ~f:(one_file params Cmd_dump)
-        |> Result.combine_errors |> Result.map ~f:ignore
+        let* () = List.map filenames ~f:(one_file params Cmd_dump)
+                  |> Result.combine_errors |> Result.map ~f:ignore
+        in Result.return Nothing_to_do
     in
     (* Process errors, correctly formatting them *)
-    let* errors = Result.map_error gather ~f:(fun err_list ->
+    let* with_combined_errors = Result.map_error gather ~f:(fun err_list ->
         let errors = String.concat ~sep:"\n" err_list in
         Printf.sprintf "There were errors during processing:\n%s" errors
       )
-    |> Result.map ~f:ignore
     |> filter_errors
     in 
-    Result.return errors
+    Result.return with_combined_errors
   in
   (* Launch the general program with reporting functions *)
   match begin
@@ -365,5 +376,5 @@ let execute args filenames =
       Progress.with_reporters ~config:Progress_bar.config bar go
     else go ignore ignore
   end with
-  | Error _ when args.silence_errors -> Ok ()
+  | Error _ when args.silence_errors -> Result.return Failed
   | s -> s

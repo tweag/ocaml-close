@@ -58,6 +58,21 @@ let pack_args command report conf_file
   Utils.{report; conf_file; skip_absent; silence_errors;
          command; verbose; patch_file; print_tree}
 
+let special_exits = [
+  Term.exit_info ~doc:"if suggestions were emitted." 2;
+  Term.exit_info ~doc:"on silenced fatal errors." 3;
+]
+
+let normal_exits = 
+  (Term.exit_info ~doc:"on non-fatal errors." 1)
+  :: Term.default_exits
+
+let status_of_outcome = function
+  | Ok Closelib.Close.Nothing_to_do -> Ok 0
+  | Ok Patches_needed -> Ok 2
+  | Ok Failed -> Ok 3
+  | Error e -> Error e
+
 let common_options behavior =
   let open Term in
   let open Closelib in
@@ -66,17 +81,20 @@ let common_options behavior =
     $ silence_errors $ verbose $ patch_file $ print_tree
   in
   let applied = const Close.execute $ args $ filenames in
-  term_result applied
+  let filtered = const status_of_outcome $ applied in
+  term_result filtered
 
 let lint =
-  let doc = "Lint files to suggest a list of modification recommendations."
-  in (common_options `Lint, Term.info "lint" ~doc)
+  let doc = "Lint files to suggest a list of modification recommendations." in
+  let exits = special_exits @ normal_exits in
+  (common_options `Lint, Term.info "lint" ~doc ~exits)
 
 let dump =
   let doc =
     "Print a summary of every found open, mainly for debugging purposes."
   in
-  (common_options `Dump, Term.info "dump" ~doc)
+  let exits = special_exits @ normal_exits in
+  (common_options `Dump, Term.info "dump" ~doc ~exits)
 
 let patch =
   let doc = "Try to patch files according to the computed recommendations." in
@@ -93,16 +111,21 @@ let patch =
     Arg.(value & flag & info ~doc ["c"; "check"])
   in
   let apply f inplace check =
-    Closelib.Patch.apply_saved f ~inplace ~check in
+    Base.Result.map ~f:(fun _ -> 0)
+      (Closelib.Patch.apply_saved f ~inplace ~check)
+  in
   let term = Term.(const apply $ filename $ inplace $ check)
              |> Term.term_result in
-  (term, Term.info "patch" ~doc)
+  (term, Term.info "patch" ~doc ~exits:normal_exits)
 
 let clean =
   let doc = "Clean all .suggested files." in
-  let term = Term.(const Closelib.Patch.clean $ const ())
+  let apply () = Base.Result.map ~f:(fun _ -> 0)
+      (Closelib.Patch.clean ())
+  in
+  let term = Term.(const apply $ const ())
              |> Term.term_result in
-  (term, Term.info "clean" ~doc)
+  (term, Term.info "clean" ~doc ~exits:normal_exits)
 
 let default_t = Term.ret (Term.const (`Help (`Auto, None)))
 
@@ -113,8 +136,9 @@ let general_info =
     `P "Email bug reports to virgile.robles@tweag.io or open
         an issue at https://github.com/Firobe/ocaml-close/issues" ]
   in
-  Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:Term.default_exits ~man
+  Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:normal_exits ~man
 
 
 let () =
-  Term.eval_choice (default_t, general_info) [lint; dump; patch; clean] |> Term.exit
+  Term.eval_choice (default_t, general_info) [lint; dump; patch; clean]
+  |> Term.exit_status
