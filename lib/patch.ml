@@ -116,9 +116,7 @@ let clean () =
   end |> filter_errors
 
 let exports ts filename =
-  let sexps =
-    List.filter ts ~f:(Fn.non is_empty)
-    |>List.map ~f:sexp_of_t in
+  let sexps = List.map ~f:sexp_of_t ts in
   Sexp.save_sexps filename sexps
 
 let imports filename =
