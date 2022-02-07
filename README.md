@@ -78,6 +78,9 @@ keep the `open`.
 Below is the configuration file used for this repo, with comments explaining the
 purpose of each line.
 
+If there are rules defined, the `precedence` field must be present and define
+their order as well, or no rule will be applied.
+
 ```scheme
 (root) ; ocaml-close will not look for .ocamlclose files in parent directories
 
