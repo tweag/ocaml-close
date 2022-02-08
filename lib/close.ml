@@ -337,13 +337,13 @@ let execute args filenames =
         let* patches =
           if args.silence_errors then
             List.filter_map patches ~f:(function
-                | Ok x when Patch.is_empty x -> None
                 | Ok x -> Some x
                 | Error _ -> None
               ) |> Result.return
           else
             Result.combine_errors patches
         in
+        let patches = List.filter ~f:(Fn.non Patch.is_empty) patches in
         if List.is_empty patches then (
           Stdio.printf "No modification suggested. All good!\n";
           Result.return Nothing_to_do
@@ -352,7 +352,7 @@ let execute args filenames =
           Patch.exports patches params.patch_file;
           let prog_name = (Sys.get_argv ()).(0) in
           Stdio.printf
-            "Modification are needed. Run '%s patch %s' to apply them.\n"
+            "Modifications are needed. Run '%s patch %s' to apply them.\n"
             prog_name params.patch_file;
           Result.return Patches_needed
         )
