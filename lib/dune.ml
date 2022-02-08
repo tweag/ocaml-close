@@ -1,20 +1,38 @@
 open Core
 open Utils
 
-let find_dune_root () = 
-  let* src = Sys.getcwd () |> Fpath.of_string |> norm_error in
-  let find_from src =
-    let find x = Utils.find_file ~containing_folder:true x src in
-    match find "dune-project", find "dune-workspace" with
-    | Ok p, _ | _, Ok p -> Result.return p
-    | error, _ -> error
-  in
-  let* first = find_from src in
-  let rec find_farthest src =
-    match find_from (Fpath.parent src) with
-    | Ok src' -> find_farthest src'
-    | Error _ -> src
-  in Result.return (find_farthest first)
+let cwd_path () =
+  let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
+  Result.return (Fpath.to_dir_path cwd)
+
+(* Memoize it *)
+(* This returns an absolute path *)
+let find_dune_root = 
+  let cache = ref None in fun () ->
+    match !cache with
+    | Some x -> Result.return x
+    | None ->
+      let* src = Sys.getcwd () |> Fpath.of_string |> norm_error in
+      let find_from src =
+        let find x = Utils.find_file ~containing_folder:true x src in
+        match find "dune-project", find "dune-workspace" with
+        | Ok p, _ | _, Ok p -> Result.return p
+        | error, _ -> error
+      in
+      let* first = find_from src in
+      let rec find_farthest src =
+        match find_from (Fpath.parent src) with
+        | Ok src' -> find_farthest src'
+        | Error _ -> src
+      in
+      Result.return (find_farthest first)
+
+let relative_dune_root () =
+  let* cwd = cwd_path () in
+  let* dune_root = find_dune_root () in
+  match Fpath.relativize ~root:cwd dune_root with
+  | Some p -> Result.return p
+  | None -> Result.failf "Invalid dune root prefix"
 
 (* Memoize it *)
 let call_describe =
@@ -36,6 +54,45 @@ let call_describe =
             )
         in cache := Some sexp ; Result.return sexp
       else Result.fail stderr
+
+let path_of_string x = Fpath.of_string x |> norm_error
+
+let all_ml_files () =
+  let open Sexp in
+  let* description = call_describe () in
+  let rec search x =
+    let default () = match x with
+      | Atom _ -> []
+      | List l -> List.map ~f:search l |> List.concat
+    in
+    match x with
+    | List [
+        List [Atom "name"; Atom _         ];
+        List [Atom "impl"; List [Atom f]  ];
+        List [Atom "intf"; List _         ];
+        List [Atom "cmt" ; List _];
+        _] -> [f]
+    | _ -> default ()
+  in
+  let all_build_ml = search description in
+  (* This is an assumption *)
+  let build_dir = "_build/default/" in
+  let remove_prefix s =
+    match String.chop_prefix s ~prefix:build_dir with
+    | Some x -> x
+    | None -> s
+  in
+  let abs_paths = List.map ~f:remove_prefix all_build_ml in
+  let* dune_root = relative_dune_root () in
+  let* paths = map_result ~f:path_of_string abs_paths in
+  let only_ml = List.filter paths ~f:(fun p ->
+      Poly.(Fpath.get_ext p = ".ml")
+    )
+  in
+  let fix p =
+    Result.return Fpath.(append dune_root p |> normalize |> to_string)
+  in
+  map_result ~f:fix only_ml
 
 let parse_describe path t =
   let open Sexp in
@@ -71,20 +128,9 @@ let parse_describe path t =
     | _ -> default ()
   in search t
 
-let of_string x = Fpath.of_string x |> norm_error
-
-let cwd_path () =
-  let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
-  Result.return (Fpath.to_dir_path cwd)
-
 let build_cmt cmt_path =
   let open Feather in
-  let* cwd = cwd_path () in
-  let* dune_root = find_dune_root () in
-  let* relative_root = match Fpath.relativize ~root:cwd dune_root with
-    | Some p -> Result.return p
-    | None -> Result.failf "Invalid dune root prefix"
-  in
+  let* relative_root = relative_dune_root () in
   let full_path = Fpath.(append relative_root cmt_path |> normalize) in
   let {status; _} =
     process "dune"
@@ -105,7 +151,7 @@ let find_cmt_location filename =
     Fpath.append relative_cwd filename |> Fpath.normalize in
   let* description = call_describe () in
   let* found_cmt = parse_describe filename_from_root description in
-  let* relative = of_string found_cmt in
+  let* relative = path_of_string found_cmt in
   let absolute = Fpath.(append dune_root relative |> normalize) in
   Result.return (relative, absolute)
 

@@ -340,6 +340,13 @@ let one_file (type ty) params (com : ty com) filename : ty res =
 type outcome = Nothing_to_do | Patches_needed | Failed
 
 let execute args filenames =
+  let* filenames =
+    if List.is_empty filenames then (
+      Stdio.printf "Analyzing all .ml files known by dune...\n";
+      Dune.all_ml_files () |> filter_errors
+    )
+    else Result.return filenames
+  in
   let open Params in
   let total = List.length filenames in
   let bar = Progress_bar.b total in

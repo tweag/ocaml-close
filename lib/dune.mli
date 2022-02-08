@@ -1,5 +1,8 @@
 (** Interaction with dune *)
 
+val all_ml_files : unit -> string list Utils.res
+(** Return the file names of every implementation file known by dune. *)
+
 val build_cmt : Fpath.t -> unit Utils.res
 (** Try to build the given file with dune. The file path must be relative to the
     dune root.*)

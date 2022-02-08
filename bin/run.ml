@@ -3,8 +3,9 @@ open Cmdliner
 let filenames =
   let doc = "Paths to the OCaml sources to read. Either .ml or .cmt files. If
   .ml files are given, dune will be used to locate their .cmt counterpart and
-  build it if it doesn't exist." in
-  Arg.(non_empty & pos_all file [] & info [] ~docv:"FILES" ~doc)
+  build it if it doesn't exist. If no files are given, will try to use dune to
+  list all known .ml files." in
+  Arg.(value & pos_all file [] & info [] ~docv:"FILES" ~doc)
 
 let report =
   let parse =
