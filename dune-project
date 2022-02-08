@@ -25,5 +25,6 @@
     fpath
     progress
     ppx_import
+    parmap
   )
 )

@@ -358,7 +358,7 @@ let execute args filenames =
     let gather =
       match params.command with
       | `Lint ->
-        let patches = List.map filenames ~f:(one_file params Cmd_lint) in
+        let patches = Parmap.parmap (one_file params Cmd_lint) (A (Array.of_list filenames)) in
         let* patches =
           if args.silence_errors then
             List.filter_map patches ~f:(function

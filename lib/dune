@@ -2,7 +2,7 @@
   (name closelib)
   (package ocamlclose)
   (libraries ocaml-compiler-libs.common
-             feather stdio fpath core sexplib progress csexp)
+             feather stdio fpath core sexplib progress csexp parmap)
   (inline_tests)
   (preprocess
     (pps ppxlib.metaquot ppx_deriving.show ppx_deriving.ord
