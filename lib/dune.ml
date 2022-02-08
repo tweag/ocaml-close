@@ -57,6 +57,7 @@ let call_describe =
 
 let path_of_string x = Fpath.of_string x |> norm_error
 
+(* Paths relative to CWD *)
 let all_ml_files () =
   let open Sexp in
   let* description = call_describe () in
@@ -89,10 +90,15 @@ let all_ml_files () =
       Poly.(Fpath.get_ext p = ".ml")
     )
   in
+  let* cwd = cwd_path () in
   let fix p =
-    Result.return Fpath.(append dune_root p |> normalize |> to_string)
+    let normalized = Fpath.(append cwd (append dune_root p) |> normalize) in
+    (* Try to relativize *)
+    match Fpath.rem_prefix cwd normalized with
+    | Some p -> Fpath.to_string p
+    | None -> Fpath.(append dune_root p |> normalize |> to_string)
   in
-  map_result ~f:fix only_ml
+  List.map ~f:fix only_ml |> Result.return
 
 let parse_describe path t =
   let open Sexp in
