@@ -24,6 +24,26 @@ let is_operator_id id =
 
 let is_submodule_id id = String.exists id ~f:(fun c -> Char.(c = '.'))
 
+(* Supports wildcard in module name *)
+let module_name_equal a b =
+  let la = String.split ~on:'.' a in
+  let lb = String.split ~on:'.' b in
+  let check_prefix la lb =
+    List.for_all2_exn la lb ~f:(fun a b ->
+        String.(a = "*" || b = "*" || a = b)
+      )
+  in
+  let la_l = List.length la in
+  let lb_l = List.length lb in
+  if la_l = lb_l then
+    check_prefix la lb
+  else
+    let pat, v = if la_l > lb_l then lb, la else la, lb in
+    let pat_l = List.length pat in
+    let prefix = List.take v pat_l in
+    check_prefix prefix pat &&
+    String.(List.last_exn pat = "*")
+
 (* Fully analyse an open t and its use sites, systematically *)
 let compute_summary tree conf (t, uses) =
   let open Typed in
@@ -147,26 +167,6 @@ let patch_of_decision filename sum decision =
     in
     Patch.insert ~newline:true to_insert ~at:sum.chunk.ch_begin patch
 
-(* Supports wildcard in module name *)
-let module_name_equal a b =
-  let la = String.split ~on:'.' a in
-  let lb = String.split ~on:'.' b in
-  let check_prefix la lb =
-    List.for_all2_exn la lb ~f:(fun a b ->
-        String.(a = "*" || b = "*" || a = b)
-      )
-  in
-  let la_l = List.length la in
-  let lb_l = List.length lb in
-  if la_l = lb_l then
-    check_prefix la lb
-  else
-    let pat, v = if la_l > lb_l then lb, la else la, lb in
-    let pat_l = List.length pat in
-    let prefix = List.take v pat_l in
-    check_prefix prefix pat &&
-    String.(List.last_exn pat = "*")
-
 (* TODO: add --explain flag to explain why a rule was applied *)
 
 (* Evaluate the configuration language *)
@@ -258,12 +258,22 @@ module Progress_bar = struct
   let b total = Multi.(line bar2 ++ line (bar1 ~total))
 end
 
-(* Detect all opens in the tree and analyse them *)
+let is_standard_open conf t =
+  let* name = Typed.Open_info.get_name t in
+  Result.return (List.mem conf.Conf.standard name ~equal:module_name_equal)
+
+(* Detect all non-standard opens in the tree and analyse them *)
 let get_summaries tree conf params =
   let open Params in
   let opens = Typed.Open_info.gather tree in
+  let non_standard = List.filter opens ~f:(fun o ->
+      match is_standard_open conf o with
+      | Ok b -> not b
+      | Error _ -> true
+    )
+  in
   params.log.change "Analyzing";
-  List.map opens ~f:(fun x ->
+  List.map non_standard ~f:(fun x ->
       let* use_sites = Typed.Open_uses.compute tree x in
       compute_summary tree conf (x, use_sites)
     )
@@ -277,7 +287,7 @@ type 'a com =
   | Cmd_lint : Patch.t com
   | Cmd_dump : unit com
 
-let analyse (type ty) params (com : ty com) filename : ty list res =
+let analyse (type ty) conf params (com : ty com) filename : ty list res =
   let open Params in
   let error s = 
     Printf.sprintf "-> %s: %s" filename s
@@ -286,7 +296,6 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
     params.log.change "Fetching";
     let* tree = Typed.Extraction.get_typed_tree ~params filename in
     if params.print_tree then Typed.Extraction.print tree;
-    let conf = params.conf filename in
     let* summaries = get_summaries tree conf params in
     let f sum : ty res = match com with
       | Cmd_lint ->
@@ -306,17 +315,26 @@ let analyse (type ty) params (com : ty com) filename : ty list res =
 let one_file (type ty) params (com : ty com) filename : ty res = 
   let open Params in
   params.log.new_file filename;
+  let conf = params.conf filename in
   match com with
   | Cmd_lint ->
-    let* patches = analyse params Cmd_lint filename in
+    let* patches = analyse conf params Cmd_lint filename in
+    let non_empty = List.filter patches ~f:(Fn.non Patch.is_empty) in
     let patch =
       (* Merge all open patches into a single one *)
-      if List.is_empty patches then Patch.empty filename
-      else List.reduce_exn patches ~f:Patch.merge
+      if List.is_empty non_empty then Patch.empty filename
+      else if conf.single && List.length non_empty = 1 then (
+        Stdio.printf
+          "Modifications in %s are ignored, since there is no ambiguity.\n"
+          filename;
+        Patch.empty filename
+      )
+      else
+        List.reduce_exn patches ~f:Patch.merge
     in
     Result.return patch
   | Cmd_dump ->
-    analyse params Cmd_dump filename |> ignore;
+    analyse conf params Cmd_dump filename |> ignore;
     Result.return ()
 
 type outcome = Nothing_to_do | Patches_needed | Failed

@@ -5,20 +5,25 @@
 ;   - 'pos':   the position before the first actual use of the open is optimal
 ;   - 'scope': the beginning of the smallest enclosing module of all the uses is
 ;              optimal
-(placement pos)
+(placement scope)
 
 ; The order in which rules are matched
 ; (e.g., we keep opens matched by the 'keep' rule no matter the other rules)
 (precedence (keep remove local structure move))
 
-; An 'open <X>' statement is...
+; List of opens that are never ever touched, considered "standard".
+(standard ("Base" "Core" "Core_kernel"))
+
+; If there is only one non-standard open that should be modified, keep it,
+; since there is no ambiguity
+(single true)
+
+; An 'open <X>' (where X is not in the standard allow-list) statement is...
 (rules
 
-  ; - left untouched if...
+  ; - left untouched if either...
   (keep
-    ; ...either it is whitelisted, ...
-    (or (in-list ("Base" "Core" "Core_kernel"))
-        ; ...it is used for infix operators, ...
+    (or ; ...it is used for infix operators, ...
         exports-syntax
         ; ...it is only for its exposed submodules, ...
         exports-subvalues-only
@@ -34,7 +39,7 @@
     ;   ... it exports few different identifiers, and...
     (and (<= symbols 5)
          ; ... it is used enough times, and...
-         (>= uses 15)
+         (>= uses 10)
          ; ... it only exports direct symbols, not from submodules, and...
          (not exports-subvalues)
          ; ... it does not exports types (avoid using ppx_import).
