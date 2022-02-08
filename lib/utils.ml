@@ -12,6 +12,7 @@ type args = {
   patch_file : string option;
   skip_absent : bool;
   silence_errors : bool;
+  parallel : bool;
   verbose : bool;
 }
 

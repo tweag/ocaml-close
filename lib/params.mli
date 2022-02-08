@@ -15,6 +15,7 @@ type t = {
   skip_absent : bool;
   print_tree : bool;
   silence_errors : bool;
+  parallel : bool;
   log : Log.t;
 }
 

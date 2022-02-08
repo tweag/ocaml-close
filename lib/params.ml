@@ -38,6 +38,7 @@ type t = {
   skip_absent : bool;
   print_tree : bool;
   silence_errors : bool;
+  parallel : bool;
   log : Log.t;
 }
 
@@ -47,8 +48,10 @@ let of_args (t : Utils.args) info =
     | None -> Filename.temp_file "patch" ".close"
     | Some x -> x
   in
+  let report = if t.parallel then `None else t.report in
+  let log = Log.make report info t.verbose in
   {
     conf; skip_absent = t.skip_absent; silence_errors = t.silence_errors;
-    command = t.command; log = Log.make t.report info t.verbose;
-    patch_file; print_tree = t.print_tree
+    command = t.command; log; patch_file; print_tree = t.print_tree;
+    parallel = t.parallel
   }
