@@ -14,14 +14,13 @@ Note that this tool will currently only build with OCaml 4.11.2 due to our usage
 of `compiler-libs`.
 
 ```bash
-dune build @install
-dune install
+opam pin add ocamlclose https://github.com/tweag/ocaml-close.git
 ```
 
 ## CLI usage
 
-Run an analysis by running `ocamlclose ML_FILE_1 ML_FILE_2 ...`
-from inside a directory owned by dune.
+Run an analysis by running `ocamlclose lint ML_FILE_1 ML_FILE_2 ...`
+from inside a directory owned by dune, or directly `ocamlclose lint` to analyze all .ml files known by dune.
 
 *For a list of options, see `ocamlclose --help`*
 
