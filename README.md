@@ -39,6 +39,8 @@ fields are optional:
 ```scheme
 (root)?
 (placement PL_MODE)?
+(standard <string>*)?
+(single <bool>)?
 (precedence (KIND*))?
 (rules RULE*)
 
@@ -51,7 +53,7 @@ PRED :=
     | (not PRED)
     | (or (PRED+))
     | (and (PRED+))
-    | exports-syntax | exports-modules | exports-modules-only
+    | exports-syntax | exports-subvalues-only
     | exports-subvalues | exports-types | ghost-use
     | in-list (<string>+)
     | (>= EXPR EXPR)
@@ -89,23 +91,28 @@ their order as well, or no rule will be applied.
 ;   - 'pos':   the position before the first actual use of the open is optimal
 ;   - 'scope': the beginning of the smallest enclosing module of all the uses is
 ;              optimal
-(placement pos)
+(placement scope)
 
 ; The order in which rules are matched
 ; (e.g., we keep opens matched by the 'keep' rule no matter the other rules)
 (precedence (keep remove local structure move))
 
-; An 'open <X>' statement is...
+; List of opens that are never ever touched, considered "standard".
+(standard ("Base" "Core" "Core_kernel"))
+
+; If there is only one non-standard open that should be modified, keep it,
+; since there is no ambiguity
+(single true)
+
+; An 'open <X>' (where X is not in the standard allow-list) statement is...
 (rules
 
-  ; - left untouched if...
+  ; - left untouched if either...
   (keep
-    ; ...either it is whitelisted, ...
-    (or (in-list ("Base" "Core" "Core_kernel"))
-        ; ...it is used for infix operators, ...
+    (or ; ...it is used for infix operators, ...
         exports-syntax
         ; ...it is only for its exposed submodules, ...
-        exports-modules-only
+        exports-subvalues-only
         ; ...or its scope is roughly a screen.
         (<= scope-lines 40)))
 
@@ -118,7 +125,7 @@ their order as well, or no rule will be applied.
     ;   ... it exports few different identifiers, and...
     (and (<= symbols 5)
          ; ... it is used enough times, and...
-         (>= uses 15)
+         (>= uses 10)
          ; ... it only exports direct symbols, not from submodules, and...
          (not exports-subvalues)
          ; ... it does not exports types (avoid using ppx_import).
@@ -129,8 +136,8 @@ their order as well, or no rule will be applied.
   (local (<= functions 4))
 
   ; - moved closer to its optimal position (see 'placement' parameter), if...
-  ;   ... it is too far from that optimal placement.
-  (move (>= dist-to-optimal 40)))
+  ;   ... it is too far from that optimal placement, or after it.
+  (move (and (>= dist-to-optimal 40) (not optimal-is-before))))
 
 ; vim: filetype=scheme
 ```
