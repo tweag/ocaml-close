@@ -332,6 +332,8 @@ let one_file (type ty) params (com : ty com) filename : ty res =
       else
         List.reduce_exn patches ~f:Patch.merge
     in
+    (* Flush buffer if running in parallel *)
+    if params.parallel then Stdio.printf "%!";
     Result.return patch
   | Cmd_dump ->
     analyse conf params Cmd_dump filename |> ignore;
@@ -358,7 +360,12 @@ let execute args filenames =
     let gather =
       match params.command with
       | `Lint ->
-        let patches = Parmap.parmap (one_file params Cmd_lint) (A (Array.of_list filenames)) in
+        let patches =
+          if params.parallel then
+            Parmap.parmap (one_file params Cmd_lint) (L filenames)
+          else
+            List.map ~f:(one_file params Cmd_lint) filenames
+        in
         let* patches =
           if args.silence_errors then
             List.filter_map patches ~f:(function
@@ -397,7 +404,7 @@ let execute args filenames =
   in
   (* Launch the general program with reporting functions *)
   match begin
-    if Poly.(args.report = `Bar) then
+    if Poly.(args.report = `Bar) && not args.parallel then
       Progress.with_reporters ~config:Progress_bar.config bar go
     else go ignore ignore
   end with

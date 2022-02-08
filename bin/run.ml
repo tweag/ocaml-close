@@ -45,6 +45,10 @@ let silence_errors =
   let doc = "Silence any error encountered during the analysis." in
   Arg.(value & flag & info ~doc ["silence-errors"])
 
+let parallel =
+  let doc = "Run analysis in parallel on all cores. Forces -r none." in
+  Arg.(value & flag & info ~doc ["j"; "parallel"])
+
 let verbose =
   let doc = "Display debug messages (only when reporting mode is 'text')." in
   Arg.(value & flag & info ~doc ["v"; "verbose"])
@@ -54,10 +58,10 @@ let print_tree =
   Arg.(value & flag & info ~doc ["print-tree"])
 
 let pack_args command report conf_file
-    skip_absent silence_errors verbose patch_file print_tree =
+    skip_absent silence_errors verbose patch_file print_tree parallel =
   let open Closelib in
   Utils.{report; conf_file; skip_absent; silence_errors;
-         command; verbose; patch_file; print_tree}
+         command; verbose; patch_file; print_tree; parallel}
 
 let special_exits = [
   Term.exit_info ~doc:"if suggestions were emitted." 2;
@@ -79,7 +83,7 @@ let common_options behavior =
   let open Closelib in
   let args =
     const pack_args $ (const behavior) $ report $ conf_file $ skip_absent
-    $ silence_errors $ verbose $ patch_file $ print_tree
+    $ silence_errors $ verbose $ patch_file $ print_tree $ parallel
   in
   let applied = const Close.execute $ args $ filenames in
   let filtered = const status_of_outcome $ applied in
