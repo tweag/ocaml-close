@@ -79,6 +79,8 @@ type placement_kind = Scope | Pos [@@deriving sexp]
 
 type t = {
   root : bool [@sexp.bool]; 
+  standard : string list [@sexp.list];
+  single : bool [@default true];
   rules : rule_list;
   placement : placement_kind [@default Pos];
   precedence : rule_kind list [@sexp.list];
@@ -93,7 +95,14 @@ let conf_of_sexpl l =
   ) in
   t_of_sexp (List l)
 
-let default = {root = true; placement = Pos; rules = []; precedence = []}
+let default = {
+  root = true;
+  placement = Pos;
+  rules = [];
+  precedence = [];
+  standard = [];
+  single = true;
+}
 
 let conf_file_name = ".ocamlclose"
 

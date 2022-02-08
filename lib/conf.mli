@@ -36,6 +36,8 @@ type placement_kind = Scope | Pos
 
 type t = {
   root : bool;
+  standard : string list;
+  single : bool;
   rules : (rule_kind * rule) list;
   placement : placement_kind;
   precedence : rule_kind list;
