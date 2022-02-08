@@ -21,7 +21,7 @@
         ; ...it is used for infix operators, ...
         exports-syntax
         ; ...it is only for its exposed submodules, ...
-        exports-modules-only
+        exports-subvalues-only
         ; ...or its scope is roughly a screen.
         (<= scope-lines 40)))
 

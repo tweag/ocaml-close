@@ -45,8 +45,7 @@ type rule =
   | False
   | In_list of string list
   | Exports_syntax
-  | Exports_modules
-  | Exports_modules_only
+  | Exports_subvalues_only
   | Exports_subvalues
   | Exports_types
   | Ghost_use
@@ -65,8 +64,7 @@ let rec rule_of_sexp =
     | List [Atom ">="; a; b] -> Geq (expr_of_sexp a, expr_of_sexp b)
     | List [Atom "in-list"; l] -> In_list (List.t_of_sexp Sexp.to_string l)
     | Atom "exports-syntax" -> Exports_syntax
-    | Atom "exports-modules-only" -> Exports_modules_only
-    | Atom "exports-modules" -> Exports_modules
+    | Atom "exports-subvalues-only" -> Exports_subvalues_only
     | Atom "exports-subvalues" -> Exports_subvalues
     | Atom "exports-types" -> Exports_types
     | Atom "ghost-use" -> Ghost_use

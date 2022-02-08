@@ -22,6 +22,8 @@ let is_operator_id id =
       is_alphanum c || c = '_'
     ))
 
+let is_submodule_id id = String.exists id ~f:(fun c -> Char.(c = '.'))
+
 (* Fully analyse an open t and its use sites, systematically *)
 let compute_summary tree conf (t, uses) =
   let open Typed in
@@ -204,10 +206,8 @@ let apply_rule tree rule sum =
     | In_list l -> List.mem l sum.module_name ~equal:module_name_equal
     | Exports_syntax ->
       List.exists sum.symbols ~f:(fun (name, _) -> is_operator_id name)
-    | Exports_modules ->
-      List.exists sum.symbols ~f:(fun (_, kind) -> Poly.(kind = Uk_Module))
-    | Exports_modules_only ->
-      List.for_all sum.symbols ~f:(fun (_, kind) -> Poly.(kind = Uk_Module))
+    | Exports_subvalues_only ->
+      List.for_all sum.symbols ~f:(fun (name, _) -> is_submodule_id name)
     | Exports_subvalues ->
       List.exists sum.symbols ~f:(fun (name, _) ->
           String.exists name ~f:(fun c -> Char.(c = '.'))

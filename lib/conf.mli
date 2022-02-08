@@ -25,8 +25,7 @@ type rule =
   | False
   | In_list of string list
   | Exports_syntax
-  | Exports_modules
-  | Exports_modules_only
+  | Exports_subvalues_only
   | Exports_subvalues
   | Exports_types
   | Ghost_use
