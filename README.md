@@ -168,5 +168,3 @@ If `foo/.ocamlclose` contains `(rules (keep (in-list ("Bar"))))` then an
 
 - Uses ocaml-libs, hence for now it only works with OCaml 4.11.2.
 - Does not support MLI files for now
-- Relies on `dune` to find .cmt files or build them
-- The tool currently over-approximates the number of use-sites for opens
