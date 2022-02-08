@@ -57,6 +57,24 @@ let call_describe =
 
 let path_of_string x = Fpath.of_string x |> norm_error
 
+type dune_module = {
+  name : string;
+  impl : string option;
+  intf : string option;
+  cmt : string option;
+  cmti : string option;
+}[@@deriving of_sexp]
+
+let describe_match_module
+    ~(f : impl:string -> cmt:string -> 'a)
+    ~(default : unit -> 'a) t =
+  try
+    let m = dune_module_of_sexp t in
+    let impl = Option.value_exn m.impl in
+    let cmt = Option.value_exn m.cmt in
+    f ~impl ~cmt
+  with _ -> default ()
+
 (* Paths relative to CWD *)
 let all_ml_files () =
   let open Sexp in
@@ -66,14 +84,7 @@ let all_ml_files () =
       | Atom _ -> []
       | List l -> List.map ~f:search l |> List.concat
     in
-    match x with
-    | List [
-        List [Atom "name"; Atom _         ];
-        List [Atom "impl"; List [Atom f]  ];
-        List [Atom "intf"; List _         ];
-        List [Atom "cmt" ; List _];
-        _] -> [f]
-    | _ -> default ()
+    describe_match_module x ~default ~f:(fun ~impl ~cmt:_ -> [impl])
   in
   let all_build_ml = search description in
   (* This is an assumption *)
@@ -121,17 +132,11 @@ let parse_describe path t =
           | None -> error
         end
     in
-    match x with
-    | List [
-        List [Atom "name"; Atom _         ];
-        List [Atom "impl"; List [Atom f]  ];
-        List [Atom "intf"; List _         ];
-        List [Atom "cmt" ; List [Atom cmt]];
-        _] ->
-      let* m = matches f in
-      if m then Result.return cmt
-      else default ()
-    | _ -> default ()
+    describe_match_module x ~default ~f:(fun ~impl ~cmt ->
+        let* m = matches impl in
+        if m then Result.return cmt
+        else default ()
+      )
   in search t
 
 let build_cmt cmt_path =
