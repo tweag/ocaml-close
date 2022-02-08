@@ -12,8 +12,8 @@
           nativeBuildInputs = oa.nativeBuildInputs
             ++ [ final.nixpkgs.makeWrapper ];
           postFixup = ''
-            wrapProgram $out/bin/ocamlclose --prefix PATH : $(dirname $(command -v ocaml)):${
-              nixpkgs.lib.makeBinPath [ final.dune final.nixpkgs.procps ]
+            wrapProgram $out/bin/ocamlclose --prefix PATH : ${
+              nixpkgs.lib.makeBinPath [ final.nixpkgs.procps ]
             }
           '';
         });
