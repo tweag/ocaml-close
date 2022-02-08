@@ -323,7 +323,7 @@ let one_file (type ty) params (com : ty com) filename : ty res =
     let patch =
       (* Merge all open patches into a single one *)
       if List.is_empty non_empty then Patch.empty filename
-      else if conf.single && List.length non_empty = 1 then (
+      else if conf.single && List.length patches = 1 then (
         Stdio.printf
           "Modifications in %s are ignored, since there is no ambiguity.\n"
           filename;
