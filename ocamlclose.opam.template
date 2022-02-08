@@ -1,3 +1,3 @@
 pin-depends: [
-  ["feather.0.3.0" "git+https://github.com/charlesetc/feather.git"]
+  ["feather.0.3.0" "git+https://github.com/charlesetc/feather.git#495fb4d027503107ece462f22111e73d4f4d084c"]
 ]
