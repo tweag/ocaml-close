@@ -1,2 +1,4 @@
 ocamlclose.opam
 _build
+# Nix result symlink
+result*
