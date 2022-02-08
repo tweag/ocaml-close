@@ -21,6 +21,7 @@ depends: [
   "fpath"
   "progress"
   "ppx_import"
+  "parmap"
   "odoc" {with-doc}
 ]
 build: [
