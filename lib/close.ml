@@ -62,7 +62,8 @@ let one_file (type ty) params (com : ty com) filename : ty res =
       if List.is_empty non_empty then Patch.empty filename
       else if conf.single && List.length patches = 1 then (
         Stdio.printf
-          "Modifications in %s are ignored, since there is no ambiguity.\n"
+          "\027[34mModifications in %s are ignored, \
+           since there is no ambiguity.\n\027[0m"
           filename;
         Patch.empty filename
       )
@@ -114,14 +115,15 @@ let execute args filenames =
         in
         let patches = List.filter ~f:(Fn.non Patch.is_empty) patches in
         if List.is_empty patches then (
-          Stdio.printf "No modification suggested. All good!\n";
+          Stdio.printf "\027[92mNo modification suggested. All good!\n\027[0m";
           Result.return Nothing_to_do
         )
         else (
           Patch.exports patches params.patch_file;
           let prog_name = (Sys.get_argv ()).(0) in
           Stdio.printf
-            "Modifications are needed. Run '%s patch %s' to apply them.\n"
+            "\027[33mModifications are needed. Run '\027[0m%s \
+             patch %s\027[33m' to apply them.\n\027[0m"
             prog_name params.patch_file;
           Result.return Patches_needed
         )
