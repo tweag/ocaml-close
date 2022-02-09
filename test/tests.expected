@@ -6,27 +6,15 @@ Processing ./.test.eobjs/byte/dune__exe__Open_scope.cmt (2/5)
 Fetching...
 Analyzing...
 { Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
-  chunk =
-  { Utils.ch_begin = { Utils.line = 4; col = 2 };
-    ch_end = { Utils.line = 4; col = 16 } };
-  ghost_use = false; total = 1; symbols = [("x", Typed.Open_uses.Uk_Value)];
-  scope_lines = 4; optimal_pos = { Utils.line = 4; col = 2 };
-  functions = (Some [{ Utils.line = 6; col = 10 }]);
-  use_sites = [{ Utils.line = 6; col = 10 }] }
+  chunk = 4:2 -> 4:16; ghost_use = false; total = 1;
+  symbols = [("x", Typed.Open_uses.Uk_Value)]; scope_lines = 4;
+  optimal_pos = 4:2; functions = (Some [6:10]); use_sites = [6:10] }
 { Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
-  chunk =
-  { Utils.ch_begin = { Utils.line = 1; col = 0 };
-    ch_end = { Utils.line = 1; col = 14 } };
-  ghost_use = false; total = 3;
+  chunk = 1:0 -> 1:14; ghost_use = false; total = 3;
   symbols =
   [("x", Typed.Open_uses.Uk_Value); ("y", Typed.Open_uses.Uk_Value)];
-  scope_lines = 12; optimal_pos = { Utils.line = 1; col = 0 };
-  functions =
-  (Some [{ Utils.line = 10; col = 16 }; { Utils.line = 6; col = 10 }]);
-  use_sites =
-  [{ Utils.line = 10; col = 19 }; { Utils.line = 10; col = 16 };
-    { Utils.line = 6; col = 10 }]
-  }
+  scope_lines = 12; optimal_pos = 1:0; functions = (Some [10:16; 6:10]);
+  use_sites = [10:19; 10:16; 6:10] }
 Processing ./.test.eobjs/byte/dune__exe__Library.cmt (3/5)
 Fetching...
 Analyzing...
@@ -34,72 +22,29 @@ Processing ./.test.eobjs/byte/dune__exe__Open_structure.cmt (4/5)
 Fetching...
 Analyzing...
 { Summary.module_name = "Dune__exe.Library.B"; short_name = "Library.B";
-  chunk =
-  { Utils.ch_begin = { Utils.line = 2; col = 0 };
-    ch_end = { Utils.line = 2; col = 14 } };
-  ghost_use = false; total = 32;
+  chunk = 2:0 -> 2:14; ghost_use = false; total = 32;
   symbols =
   [("t", (Typed.Open_uses.Uk_Type 0)); ("f", Typed.Open_uses.Uk_Value)];
-  scope_lines = 93; optimal_pos = { Utils.line = 1; col = 0 };
+  scope_lines = 93; optimal_pos = 1:0;
   functions =
-  (Some [{ Utils.line = 85; col = 8 }; { Utils.line = 87; col = 8 };
-          { Utils.line = 91; col = 8 }; { Utils.line = 79; col = 8 };
-          { Utils.line = 77; col = 8 }; { Utils.line = 92; col = 8 };
-          { Utils.line = 81; col = 8 }; { Utils.line = 78; col = 8 };
-          { Utils.line = 86; col = 8 }; { Utils.line = 82; col = 8 };
-          { Utils.line = 89; col = 8 }; { Utils.line = 88; col = 8 };
-          { Utils.line = 83; col = 8 }; { Utils.line = 90; col = 8 };
-          { Utils.line = 84; col = 8 }; { Utils.line = 80; col = 8 }]);
+  (Some [85:8; 87:8; 91:8; 79:8; 77:8; 92:8; 81:8; 78:8; 86:8; 82:8; 89:8;
+          88:8; 83:8; 90:8; 84:8; 80:8]);
   use_sites =
-  [{ Utils.line = 92; col = 8 }; { Utils.line = 92; col = 8 };
-    { Utils.line = 91; col = 8 }; { Utils.line = 91; col = 8 };
-    { Utils.line = 90; col = 8 }; { Utils.line = 90; col = 8 };
-    { Utils.line = 89; col = 8 }; { Utils.line = 89; col = 8 };
-    { Utils.line = 88; col = 8 }; { Utils.line = 88; col = 8 };
-    { Utils.line = 87; col = 8 }; { Utils.line = 87; col = 8 };
-    { Utils.line = 86; col = 8 }; { Utils.line = 86; col = 8 };
-    { Utils.line = 85; col = 8 }; { Utils.line = 85; col = 8 };
-    { Utils.line = 84; col = 8 }; { Utils.line = 84; col = 8 };
-    { Utils.line = 83; col = 8 }; { Utils.line = 83; col = 8 };
-    { Utils.line = 82; col = 8 }; { Utils.line = 82; col = 8 };
-    { Utils.line = 81; col = 8 }; { Utils.line = 81; col = 8 };
-    { Utils.line = 80; col = 8 }; { Utils.line = 80; col = 8 };
-    { Utils.line = 79; col = 8 }; { Utils.line = 79; col = 8 };
-    { Utils.line = 78; col = 8 }; { Utils.line = 78; col = 8 };
-    { Utils.line = 77; col = 8 }; { Utils.line = 77; col = 8 }]
+  [92:8; 92:8; 91:8; 91:8; 90:8; 90:8; 89:8; 89:8; 88:8; 88:8; 87:8; 87:8;
+    86:8; 86:8; 85:8; 85:8; 84:8; 84:8; 83:8; 83:8; 82:8; 82:8; 81:8; 81:8;
+    80:8; 80:8; 79:8; 79:8; 78:8; 78:8; 77:8; 77:8]
   }
 { Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
-  chunk =
-  { Utils.ch_begin = { Utils.line = 1; col = 0 };
-    ch_end = { Utils.line = 1; col = 14 } };
-  ghost_use = false; total = 22;
+  chunk = 1:0 -> 1:14; ghost_use = false; total = 22;
   symbols =
   [("x", Typed.Open_uses.Uk_Value); ("t", (Typed.Open_uses.Uk_Type 1))];
-  scope_lines = 94; optimal_pos = { Utils.line = 1; col = 0 };
+  scope_lines = 94; optimal_pos = 1:0;
   functions =
-  (Some [{ Utils.line = 69; col = 8 }; { Utils.line = 73; col = 8 };
-          { Utils.line = 58; col = 8 }; { Utils.line = 70; col = 8 };
-          { Utils.line = 61; col = 8 }; { Utils.line = 74; col = 8 };
-          { Utils.line = 71; col = 8 }; { Utils.line = 66; col = 8 };
-          { Utils.line = 76; col = 8 }; { Utils.line = 67; col = 8 };
-          { Utils.line = 62; col = 8 }; { Utils.line = 68; col = 8 };
-          { Utils.line = 55; col = 8 }; { Utils.line = 72; col = 8 };
-          { Utils.line = 65; col = 8 }; { Utils.line = 64; col = 8 };
-          { Utils.line = 57; col = 8 }; { Utils.line = 59; col = 8 };
-          { Utils.line = 56; col = 8 }; { Utils.line = 60; col = 8 };
-          { Utils.line = 63; col = 8 }; { Utils.line = 75; col = 8 }]);
+  (Some [69:8; 73:8; 58:8; 70:8; 61:8; 74:8; 71:8; 66:8; 76:8; 67:8; 62:8;
+          68:8; 55:8; 72:8; 65:8; 64:8; 57:8; 59:8; 56:8; 60:8; 63:8; 75:8]);
   use_sites =
-  [{ Utils.line = 76; col = 8 }; { Utils.line = 75; col = 8 };
-    { Utils.line = 74; col = 8 }; { Utils.line = 73; col = 8 };
-    { Utils.line = 72; col = 8 }; { Utils.line = 71; col = 8 };
-    { Utils.line = 70; col = 8 }; { Utils.line = 69; col = 8 };
-    { Utils.line = 68; col = 8 }; { Utils.line = 67; col = 8 };
-    { Utils.line = 66; col = 8 }; { Utils.line = 65; col = 8 };
-    { Utils.line = 64; col = 8 }; { Utils.line = 63; col = 8 };
-    { Utils.line = 62; col = 8 }; { Utils.line = 61; col = 8 };
-    { Utils.line = 60; col = 8 }; { Utils.line = 59; col = 8 };
-    { Utils.line = 58; col = 8 }; { Utils.line = 57; col = 8 };
-    { Utils.line = 56; col = 8 }; { Utils.line = 55; col = 8 }]
+  [76:8; 75:8; 74:8; 73:8; 72:8; 71:8; 70:8; 69:8; 68:8; 67:8; 66:8; 65:8;
+    64:8; 63:8; 62:8; 61:8; 60:8; 59:8; 58:8; 57:8; 56:8; 55:8]
   }
 Processing ./.test.eobjs/byte/dune__exe__Test.cmt (5/5)
 Fetching...

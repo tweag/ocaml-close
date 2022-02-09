@@ -26,8 +26,15 @@ let find_file_s ?containing_folder name src =
   let* found = find_file ?containing_folder name srcf in
   Result.return (Fpath.to_string found)
 
-type pos = {line : int ; col : int}[@@deriving show, sexp, ord]
-type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show, sexp]
+let pp_of_show show fmt x = Caml.Format.fprintf fmt "%s" (show x)
+
+type pos = {line : int ; col : int}[@@deriving sexp, ord]
+let show_pos p = Printf.sprintf "%d:%d" p.line p.col
+let pp_pos = pp_of_show show_pos
+type chunk = {ch_begin : pos; ch_end : pos}[@@deriving sexp]
+let show_chunk p = Printf.sprintf "%s -> %s"
+    (show_pos p.ch_begin) (show_pos p.ch_end)
+let pp_chunk = pp_of_show show_chunk
 
 let map_result ~f l = 
   List.map ~f l |> Result.combine_errors |> Result.map_error ~f:(List.hd_exn)
