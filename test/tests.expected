@@ -5,7 +5,7 @@ Analyzing...
 Processing ./.test.eobjs/byte/dune__exe__Open_scope.cmt (2/5)
 Fetching...
 Analyzing...
-{ Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
+{ Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   chunk =
   { Utils.ch_begin = { Utils.line = 4; col = 2 };
     ch_end = { Utils.line = 4; col = 16 } };
@@ -13,7 +13,7 @@ Analyzing...
   scope_lines = 4; optimal_pos = { Utils.line = 4; col = 2 };
   functions = (Some [{ Utils.line = 6; col = 10 }]);
   use_sites = [{ Utils.line = 6; col = 10 }] }
-{ Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
+{ Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   chunk =
   { Utils.ch_begin = { Utils.line = 1; col = 0 };
     ch_end = { Utils.line = 1; col = 14 } };
@@ -33,7 +33,7 @@ Analyzing...
 Processing ./.test.eobjs/byte/dune__exe__Open_structure.cmt (4/5)
 Fetching...
 Analyzing...
-{ Close.module_name = "Dune__exe.Library.B"; short_name = "Library.B";
+{ Summary.module_name = "Dune__exe.Library.B"; short_name = "Library.B";
   chunk =
   { Utils.ch_begin = { Utils.line = 2; col = 0 };
     ch_end = { Utils.line = 2; col = 14 } };
@@ -68,7 +68,7 @@ Analyzing...
     { Utils.line = 78; col = 8 }; { Utils.line = 78; col = 8 };
     { Utils.line = 77; col = 8 }; { Utils.line = 77; col = 8 }]
   }
-{ Close.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
+{ Summary.module_name = "Dune__exe.Library.A"; short_name = "Library.A";
   chunk =
   { Utils.ch_begin = { Utils.line = 1; col = 0 };
     ch_end = { Utils.line = 1; col = 14 } };

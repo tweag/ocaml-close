@@ -2,5 +2,5 @@
 
 type outcome = Nothing_to_do | Patches_needed | Failed
 
-val execute : Utils.args -> string list -> (outcome, [`Msg of string]) result
+val execute : Params.cli -> string list -> (outcome, [`Msg of string]) result
 (** Analyse opens of a file and prints suggestions for change. *)

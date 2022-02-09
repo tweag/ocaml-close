@@ -8,15 +8,29 @@ module Log : sig
   }
 end
 
-type t = {
-  command : Utils.command;
-  conf : string -> Conf.t;
-  patch_file : string;
-  skip_absent : bool;
+type command = [`Lint | `Dump]
+
+type common_args = {
+  command : command;
   print_tree : bool;
+  skip_absent : bool;
   silence_errors : bool;
   parallel : bool;
-  log : Log.t;
 }
 
-val of_args : Utils.args -> ((string -> unit) * (int -> unit)) * int -> t
+type cli = {
+  report : [`Bar | `Text | `None];
+  conf_file : string option;
+  verbose : bool;
+  patch_file : string option;
+  common : common_args;
+}
+
+type t = {
+  conf : string -> Conf.t;
+  log : Log.t;
+  patch_file : string;
+  common : common_args;
+}
+
+val of_cli : cli -> ((string -> unit) * (int -> unit)) * int -> t

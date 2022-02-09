@@ -2,20 +2,6 @@
 
 open Core
 
-type command = [`Lint | `Dump]
-
-type args = {
-  command : command;
-  report : [`Bar | `Text | `None];
-  print_tree : bool;
-  conf_file : string option;
-  patch_file : string option;
-  skip_absent : bool;
-  silence_errors : bool;
-  parallel : bool;
-  verbose : bool;
-}
-
 type 'a res = ('a, string) Result.t
 
 let (let*) = Stdlib.Result.bind
@@ -45,3 +31,23 @@ type chunk = {ch_begin : pos; ch_end : pos}[@@deriving show, sexp]
 
 let map_result ~f l = 
   List.map ~f l |> Result.combine_errors |> Result.map_error ~f:(List.hd_exn)
+
+(* Supports wildcard in module name *)
+let module_name_equal a b =
+  let la = String.split ~on:'.' a in
+  let lb = String.split ~on:'.' b in
+  let check_prefix la lb =
+    List.for_all2_exn la lb ~f:(fun a b ->
+        String.(a = "*" || b = "*" || a = b)
+      )
+  in
+  let la_l = List.length la in
+  let lb_l = List.length lb in
+  if la_l = lb_l then
+    check_prefix la lb
+  else
+    let pat, v = if la_l > lb_l then lb, la else la, lb in
+    let pat_l = List.length pat in
+    let prefix = List.take v pat_l in
+    check_prefix prefix pat &&
+    String.(List.last_exn pat = "*")

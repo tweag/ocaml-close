@@ -171,6 +171,6 @@ let find_or_build_cmt ~(params : Params.t) filename =
   let absolute_str = Fpath.to_string absolute in
   let* () =
     if Poly.(Sys.file_exists absolute_str = `Yes) then Result.return ()
-    else if params.skip_absent then Result.failf "Not built, skipping."
+    else if params.common.skip_absent then Result.failf "Not built, skipping."
     else (params.log.change "Building"; build_cmt relative)
   in Result.return absolute_str

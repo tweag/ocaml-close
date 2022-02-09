@@ -10,9 +10,9 @@ let filenames =
 let report =
   let parse =
     let open Base in function
-    | "bar" -> Result.return `Bar | "text" -> Result.return `Text
-    | "none" -> Result.return `None
-    | _ -> Result.fail (`Msg "must be one of 'bar', 'text' or 'none'.")
+      | "bar" -> Result.return `Bar | "text" -> Result.return `Text
+      | "none" -> Result.return `None
+      | _ -> Result.fail (`Msg "must be one of 'bar', 'text' or 'none'.")
   in
   let print fmt x = let text = match x with
       | `Bar -> "bar" | `Text -> "text" | `None -> "none"
@@ -59,9 +59,9 @@ let print_tree =
 
 let pack_args command report conf_file
     skip_absent silence_errors verbose patch_file print_tree parallel =
-  let open Closelib in
-  Utils.{report; conf_file; skip_absent; silence_errors;
-         command; verbose; patch_file; print_tree; parallel}
+  let open Closelib.Params in
+  let common = {skip_absent; silence_errors; command; print_tree; parallel} in
+  {common; conf_file; report; patch_file; verbose}
 
 let special_exits = [
   Term.exit_info ~doc:"if suggestions were emitted." 2;
@@ -142,7 +142,6 @@ let general_info =
         an issue at https://github.com/Firobe/ocaml-close/issues" ]
   in
   Term.info "ocamlclose" ~version:"0.1" ~doc ~exits:normal_exits ~man
-
 
 let () =
   Term.eval_choice (default_t, general_info) [lint; dump; patch; clean]
