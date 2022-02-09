@@ -32,6 +32,8 @@ let analyse (type ty) conf params (com : ty com) filename : ty list res =
   begin
     params.log.change "Fetching";
     let* tree = Analysis.AST.get ~params filename in
+    (* let* usedef = Usedef.make tree in
+    Stdio.printf "Lol %s\n" (Usedef.show usedef); *)
     if params.common.print_tree then Analysis.AST.print tree;
     let* summaries = Summary.compute_all tree conf params in
     let f sum : ty res = match com with

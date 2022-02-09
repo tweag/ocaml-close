@@ -3,7 +3,7 @@
 (** Retrieval and simple manipulation of the OCaml typed tree. *)
 module AST : sig
 
-  type t
+  type t = Typedtree.structure
   (** The type of a typed tree. Left abstract to isolate compiler-libs usage *)
 
   val get : params:Params.t -> string -> t Utils.res
@@ -23,7 +23,7 @@ end
 (** Retrieval and simple manipulation of [open Module] information in the
     typed tree. *)
 module Info : sig
-  type t
+  type t = Typedtree.module_expr Typedtree.open_infos
   (** The type of an open. *)
 
   val gather : AST.t -> t list
