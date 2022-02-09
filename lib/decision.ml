@@ -79,7 +79,7 @@ let to_patch filename sum decision =
     let patch = Patch.delete ~chunk:sum.chunk patch in
     let open Caml.Format in
     let pp_value fmt (name, kind) =
-      let open Typed.Open_uses in
+      let open Analysis.Uses in
       match kind with
       | Uk_Type 0 ->
         (* type t = t is cyclic, even with an open *)
@@ -122,7 +122,7 @@ let apply_rule tree rule sum =
     | Const n -> n
     | Uses -> sum.total
     | Symbols -> List.length sum.symbols
-    | File_lines -> Typed.Extraction.source_lines tree
+    | File_lines -> Analysis.AST.source_lines tree
     | Scope_lines -> sum.scope_lines
     | Dist_to_optimal ->
       let opos = sum.chunk.ch_begin in

@@ -31,8 +31,8 @@ let analyse (type ty) conf params (com : ty com) filename : ty list res =
   in
   begin
     params.log.change "Fetching";
-    let* tree = Typed.Extraction.get_typed_tree ~params filename in
-    if params.common.print_tree then Typed.Extraction.print tree;
+    let* tree = Analysis.AST.get ~params filename in
+    if params.common.print_tree then Analysis.AST.print tree;
     let* summaries = Summary.compute_all tree conf params in
     let f sum : ty res = match com with
       | Cmd_lint ->

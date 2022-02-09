@@ -2,7 +2,7 @@
 
 type t
 
-val compute : Typed.Extraction.t -> Conf.t -> Summary.t -> t
+val compute : Analysis.AST.t -> Conf.t -> Summary.t -> t
 (** [compute tree conf sum] returns the decision taken by applying rule matching
     of the rules in the configuration to the analysis summary of an open *)
 

@@ -6,13 +6,13 @@ type t = {
   chunk : Utils.chunk;
   ghost_use : bool;
   total : int;
-  symbols : (string * Typed.Open_uses.use_kind) list;
+  symbols : (string * Analysis.Uses.kind) list;
   scope_lines : int;
   optimal_pos : Utils.pos;
   functions : Utils.pos list option;
   use_sites : Utils.pos list;
 }[@@deriving show]
 
-val compute_all : Typed.Extraction.t -> Conf.t -> Params.t -> t list Utils.res
+val compute_all : Analysis.AST.t -> Conf.t -> Params.t -> t list Utils.res
 (** [compute_all tree conf params] gather all non-standard opens and computes an
     analysis summary for each of them *)

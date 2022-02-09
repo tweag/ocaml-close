@@ -9,12 +9,12 @@ let lines_of_loc loc =
 let loc_equal l1 l2 =
   Warnings.(Poly.(l1.loc_start = l2.loc_start && l1.loc_end = l2.loc_end))
 
-module Extraction = struct
+module AST = struct
   type t = structure
 
   let of_string x = Fpath.of_string x |> norm_error
 
-  let get_typed_tree ~params filename =
+  let get ~params filename =
     let* fpath = of_string filename in
     let* cmt_path = match Fpath.get_ext fpath with
       | ".ml" ->
@@ -72,7 +72,7 @@ let chunk_of_loc loc =
   let ch_end = pos_of_lexpos loc_end in
   {ch_begin; ch_end}
 
-module Open_info = struct
+module Info = struct
 
   type t = open_declaration
 
@@ -147,14 +147,14 @@ module Find = struct
     let best_candidate = ref t in
     let super = Tast_iterator.default_iterator in
     let structure i s =
-      let str_loc = Extraction.loc s in
+      let str_loc = AST.loc s in
       let all_enclosed = Core_kernel.List.for_all vlocs ~f:(
           location_enclosed ~outer:str_loc
         )
       in
       if all_enclosed then begin
         let old_s = !best_candidate in
-        let loc, old_loc = Extraction.(loc s, loc old_s) in
+        let loc, old_loc = AST.(loc s, loc old_s) in
         if location_enclosed ~outer:old_loc loc then
           best_candidate := s
       end;
@@ -167,7 +167,7 @@ module Find = struct
    * restrained to values *after* the open statement *)
   let scope_of_open t op =
     let loc = op.open_loc in
-    let surround_loc = enclosing_structure [loc] t |> Extraction.loc in
+    let surround_loc = enclosing_structure [loc] t |> AST.loc in
     {loc with loc_end = surround_loc.loc_end}
 
   let scope_lines t op = scope_of_open t op |> lines_of_loc
@@ -235,13 +235,13 @@ module Find = struct
     it.structure it t; !found
 end
 
-module Open_uses = struct
-  type use_loc = Location.t
+module Uses = struct
+  type loc = Location.t
 
-  type use_kind = Uk_Module | Uk_Module_Type | Uk_Value | Uk_Type of int
+  type kind = Uk_Module | Uk_Module_Type | Uk_Value | Uk_Type of int
   [@@deriving show]
 
-  type use = {name : string; loc : use_loc; kind : use_kind}
+  type t = {name : string; loc : loc; kind : kind}
 
   (* TODO if we encounter a (local or global) open for the same module, warn
    * that it is subsumed *)
@@ -256,7 +256,7 @@ module Open_uses = struct
 
   let check_label f desc = f_if_constr f desc.Types.lbl_res
 
-  type f = use_loc -> ?txt:Longident.t -> use_kind -> Path.t -> unit
+  type f = loc -> ?txt:Longident.t -> kind -> Path.t -> unit
   let path_iterator t (f : f) =
     let super = Tast_iterator.default_iterator in
     let attributed_type_locs = Find.attributed_type_locs t in
@@ -347,7 +347,7 @@ module Open_uses = struct
       let scope = Find.scope_of_open t o in
       fun loc -> Find.location_enclosed ~outer:scope loc
     in
-    let* opath = Open_info.get_path o in
+    let* opath = Info.get_path o in
     let rec matches os vs = match os, vs with
       | o :: t1, v :: t2 when String.(o = v) -> matches t1 t2
       | [], [] -> None
@@ -358,7 +358,7 @@ module Open_uses = struct
     (* Path of the open *)
     let* osegs = segs_of_path opath in
     (* Path of the open short name *)
-    let* sosegs = Open_info.get_ident o in
+    let* sosegs = Info.get_ident o in
     let sosegs = Longident.flatten sosegs in
     (* Function applied on each potential use *)
     let rec f loc ?(txt=Longident.Lident "") kind vpath = 
@@ -405,7 +405,7 @@ module Open_uses = struct
   let optimal_scoped_position t uses =
     let use_locs = List.map ~f:(fun x -> x.loc) uses in
     let closest_structure = Find.enclosing_structure use_locs t in
-    let loc = Extraction.loc closest_structure in
+    let loc = AST.loc closest_structure in
     pos_of_lexpos loc.loc_start
 
   let optimal_global_position t uses =
@@ -416,7 +416,7 @@ module Open_uses = struct
       Int.compare l1.loc_start.pos_cnum l2.loc_start.pos_cnum
     in
     match List.min_elt use_locs ~compare with
-    | None -> pos_of_lexpos (Extraction.loc t).Location.loc_start
+    | None -> pos_of_lexpos (AST.loc t).Location.loc_start
     | Some earliest_use ->
       let best_res =
         List.map closest_structure.str_items
