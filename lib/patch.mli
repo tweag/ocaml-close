@@ -34,7 +34,7 @@ val clean : unit -> (unit, [`Msg of string]) result
 val exports : t list -> string -> unit
 (** Export a list of patches as a file *)
 
-val imports : string -> t list
+val imports : string -> t list Utils.res
 (** Import previously exported patches *)
 
 val apply_saved : ?inplace:bool -> ?check:bool

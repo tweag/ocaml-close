@@ -120,8 +120,12 @@ let exports ts filename =
   Sexp.save_sexps filename sexps
 
 let imports filename =
-  let sexps = Sexp.load_sexps filename in
-  List.map sexps ~f:t_of_sexp
+  try
+    let sexps = Sexp.load_sexps filename in
+    List.map sexps ~f:t_of_sexp |> Result.return
+  with _ ->
+    Result.failf "%s is not a proper patch file. Run the 'lint' command on your \
+      .ml files to obtain a patch file if there are changes." filename
 
 let apply_saved ?(inplace=false) ?check filename =
   if inplace then
@@ -130,6 +134,6 @@ let apply_saved ?(inplace=false) ?check filename =
     Stdio.printf
       "Applying recommendations; modified files will be suffixed with %s...\n%!"
       suggested_suffix;
-  let patches = imports filename in
+  let* patches = imports filename |> filter_errors in
   map_result patches ~f:(apply ~inplace ?check)
   |> Result.map ~f:ignore |> filter_errors
