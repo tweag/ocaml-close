@@ -21,7 +21,7 @@ module AST = struct
         let with_cmt = Fpath.(set_ext ".cmt" fpath |> to_string) in
         begin match Sys.file_exists with_cmt with
           | `Yes -> Result.return with_cmt
-          | _ -> Dune.find_or_build_cmt ~params fpath
+          | _ -> Dune.find_or_build_obj ~kind:`Cmt ~params fpath
         end
       | ".cmt" -> Result.return filename
       | _ -> Result.failf "%s is not a .ml or .cmt file" filename

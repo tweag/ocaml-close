@@ -1,6 +1,8 @@
 open Core
 open Utils
 
+type ext_kind = [`Cmt | `Cmi]
+
 let cwd_path () =
   let* cwd = Sys.getcwd () |> Fpath.of_string |> norm_error in
   Result.return (Fpath.to_dir_path cwd)
@@ -111,7 +113,7 @@ let all_ml_files () =
   in
   List.map ~f:fix only_ml |> Result.return
 
-let parse_describe path t =
+let parse_describe ~kind path t =
   let open Sexp in
   let segs = Fpath.segs path in
   let nb = List.length segs in
@@ -134,23 +136,27 @@ let parse_describe path t =
     in
     describe_match_module x ~default ~f:(fun ~impl ~cmt ->
         let* m = matches impl in
-        if m then Result.return cmt
+        if m then
+          let* path = path_of_string cmt in
+          match kind with
+          | `Cmt -> Result.return path
+          | `Cmi -> Result.return (Fpath.set_ext "cmi" path)
         else default ()
       )
   in search t
 
-let build_cmt cmt_path =
+let build_obj obj_path =
   let open Feather in
   let* relative_root = relative_dune_root () in
-  let full_path = Fpath.(append relative_root cmt_path |> normalize) in
+  let full_path = Fpath.(append relative_root obj_path |> normalize) in
   let {status; _} =
     process "dune"
       ["build"; "--cache=enabled"; Fpath.to_string full_path] 
     |> collect everything in
   if status = 0 then Result.return ()
-  else Result.failf "Could not build the .cmt file!\n"
+  else Result.failf "Could not build the file %s!\n" (Fpath.to_string obj_path)
 
-let find_cmt_location filename =
+let find_obj_location ~kind filename =
   let* dune_root = find_dune_root () in
   let* cwd = cwd_path () in
   let* relative_cwd =
@@ -161,16 +167,15 @@ let find_cmt_location filename =
   let filename_from_root =
     Fpath.append relative_cwd filename |> Fpath.normalize in
   let* description = call_describe () in
-  let* found_cmt = parse_describe filename_from_root description in
-  let* relative = path_of_string found_cmt in
+  let* relative = parse_describe ~kind filename_from_root description in
   let absolute = Fpath.(append dune_root relative |> normalize) in
   Result.return (relative, absolute)
 
-let find_or_build_cmt ~(params : Params.t) filename =
-  let* relative, absolute = find_cmt_location filename in
+let find_or_build_obj ~kind ~(params : Params.t) filename =
+  let* relative, absolute = find_obj_location ~kind filename in
   let absolute_str = Fpath.to_string absolute in
   let* () =
     if Poly.(Sys.file_exists absolute_str = `Yes) then Result.return ()
     else if params.common.skip_absent then Result.failf "Not built, skipping."
-    else (params.log.change "Building"; build_cmt relative)
+    else (params.log.change "Building"; build_obj relative)
   in Result.return absolute_str

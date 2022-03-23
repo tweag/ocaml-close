@@ -84,8 +84,8 @@ let apply ?(inplace=false) ?(check=false) =
         |> Stdio.Out_channel.write_lines out_filename;
         if check then (
           let* f = Fpath.of_string filename |> norm_error in
-          let* relative, _ = Dune.find_cmt_location f in
-          match Dune.build_cmt relative with
+          let* relative, _ = Dune.find_obj_location ~kind:`Cmt f in
+          match Dune.build_obj relative with
           | Ok () ->
             let msg = "OK\n" in
             Stdio.printf "\027[92m%s\027[0m%!" msg;
